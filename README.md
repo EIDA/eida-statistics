@@ -1,13 +1,13 @@
 # Statistics @ EIDA
 
-    This project should provide unified statistics about EIDA nodes usage.
+This project should provide unified statistics about EIDA nodes usage.
     
 
 ## Aggregating data
 
-    Each EIDA node prepares an aggregation of their logging file using the same script.
+Each EIDA node prepares an aggregation of their logging file using the same script.
 
-    This aggregation result is sent to a central database through a webservice provided by a central node
+This aggregation result is sent to a central database through a webservice provided by a central node
 
 
 ### Aggregation problems
