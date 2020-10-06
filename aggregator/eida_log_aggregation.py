@@ -11,6 +11,7 @@ import bz2
 import mmh3
 import click
 from python_hll.hll import HLL
+from python_hll.util import NumberUtil
 
 
 class EidaStatistic:
@@ -72,6 +73,40 @@ class EidaStatistic:
         logging.debug(string)
         return string
 
+    def to_dict(self):
+        """
+        Dump the statistic as a dictionary
+        """
+        unique_clients_bytes = self.unique_clients.to_bytes()
+        json_dict = {'date': str(self.date),
+                     'network': self.network,
+                     'station': self.station,
+                     'location': self.location,
+                     'channel': self.channel,
+                     'country': self.country,
+                     'bytes': self.size,
+                     'nb_requests': self.nb_requests,
+                     'nb_successful_requests': self.nb_successful_requests,
+                     'nb_unsuccessful_requests': self.nb_unsuccessful_requests,
+                     'clients': "\\x" + NumberUtil.to_hex(unique_clients_bytes, 0, len(unique_clients_bytes))}
+        return json_dict
+
+
+
+def merge_statistics(stat1, stat2):
+    """
+    Merge stat1 in stat2
+    Returns a new merged dictionary of aggregation
+    """
+    for key,stat in stat1.items():
+        if key in stat2.keys():
+            stat2[key].aggregate(stat)
+        else:
+            stat2[key] = stat
+    return stat2
+
+
+
 def parse_file(filename):
     """
     Parse the file provided in order to aggregate the data.
@@ -127,7 +162,27 @@ def parse_file(filename):
                     statistics[new_stat.key()] = new_stat
     return statistics
 
-def cli():
+@click.command()
+@click.option('--output-file', type=click.Path(exists=False), help="File to write the statistics to.", default='output_statistics.json')
+@click.option('--eida-node', help="Your EIDA node", type=click.Choice(['GFZ', 'ETHZ', 'RESIF', 'ODC', 'INGV', 'BGR', 'LMU', 'NIEP', 'KOERI', 'NOA', 'UIB', 'ICGC', 'other']), default='other')
+@click.argument('files', type=click.Path(exists=True), nargs=-1)
+def cli(files, eida_node, output_file):
     """
     Command line interface
     """
+    statslist = []
+    for f in files:
+        statslist.append(parse_file(f))
+    statistics = {}
+    for stat in statslist:
+        statistics = merge_statistics(stat, statistics)
+   
+    with open(output_file, 'w') as dumpfile:
+        dumpfile.write('[')
+        for key, stat in statistics.items():
+            json.dump(stat.to_dict(), dumpfile)
+            dumpfile.write(', ')
+        dumpfile.write(']')
+
+if __name__ == "__main__":
+    cli()
