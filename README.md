@@ -9,6 +9,14 @@ Each EIDA node prepares an aggregation of their logging file using the same scri
 
 This aggregation result is sent to a central database through a webservice provided by a central node
 
+### Install
+
+With `pipenv`, run 
+
+    pipenv install
+    pipenv shell
+    python aggregator/eida_log_aggregation.py
+
 ### Test
 
 From the projet's root directory run 
