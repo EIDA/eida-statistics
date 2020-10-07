@@ -4,7 +4,7 @@
 Aggregate and submit metadata
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import logging
 import json
 import bz2
@@ -105,7 +105,14 @@ def merge_statistics(stat1, stat2):
             stat2[key] = stat
     return stat2
 
-
+def end_of_week(event_datetime):
+    """
+    Returns the last day ot week
+    event_datetime is a DateTime or Date object. Must have a weekday() method.
+    """
+    if not isinstance(event_datetime, date):
+        raise TypeError("datetime.date expected")
+    return event_datetime + timedelta(days=(6-event_datetime.weekday()))
 
 def parse_file(filename):
     """
@@ -130,9 +137,7 @@ def parse_file(filename):
                 logging.warning("Line %d could not be pardes as JSON. Ignoring", line_number)
             logging.debug(data)
             # Get the event timestamp as object
-            event_datetime = datetime.fromisoformat(data['finished'].strip('Z')).date()
-            # The date of the statistic is th end of the week's day
-            event_weekday = event_datetime + timedelta(days=(6-event_datetime.weekday()))
+            event_weekday = end_of_week(datetime.fromisoformat(data['finished'].strip('Z')).date())
             if data['status'] == "OK":
                 for trace in data['trace']:
                     try:
@@ -182,7 +187,7 @@ def cli(files, eida_node, output_file):
         for key, stat in statistics.items():
             json.dump(stat.to_dict(), dumpfile)
             dumpfile.write(', ')
-        dumpfile.write(']')
+        dumpfile.write('"eida_node": '+eida_node+']')
 
 if __name__ == "__main__":
     cli()
