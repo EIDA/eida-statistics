@@ -134,7 +134,7 @@ def parse_file(filename):
             try:
                 data = json.loads(jsondata)
             except json.JSONDecodeError:
-                logging.warning("Line %d could not be pardes as JSON. Ignoring", line_number)
+                logging.warning("Line %d could not be parsed as JSON. Ignoring", line_number)
             logging.debug(data)
             # Get the event timestamp as object
             event_weekday = end_of_week(datetime.fromisoformat(data['finished'].strip('Z')).date())
