@@ -9,7 +9,7 @@ Each EIDA node prepares an aggregation of their logging file using the same scri
 
 This aggregation result is sent to a central database through a webservice provided by a central node
 
-### Install
+### Install and execute
 
 With `pipenv`, run 
 
@@ -23,10 +23,6 @@ From the projet's root directory run
 
     pytest
     
-### Execute
-
-To be documented (and coded) yet
-
 ### Aggregation problems
 
 #### The Count distinct problem
