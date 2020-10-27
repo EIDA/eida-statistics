@@ -15,7 +15,9 @@ With `pipenv`, run
 
     pipenv install
     pipenv shell
-    python aggregator/eida_log_aggregation.py
+    python aggregator/eida_log_aggregation.py --help
+    
+For now, the log file from seiscomp is expected to be a list of JSON entries compressed with BZIP2.
 
 ### Test
 
