@@ -19,10 +19,27 @@ With `pipenv`, run
     
 For now, the log file from seiscomp is expected to be a list of JSON entries compressed with BZIP2.
 
+### Exemples
+
+Aggregate one bz2 seiscomp logfile:
+
+    python aggregator/eida_log_aggregation.py --node NIEP --output-file 20201102_NIEP fdsnws-requests.log.2020-11-02.bz2
+    
+Also available with stdin:
+
+    echo "fdsnws-requests.log.2020-11-02.bz2" | python aggregator/eida_log_aggregation.py --node NIEP --output-file 20201102_NIEP 
+    
+You can also agregate several logfiles:
+
+    python aggregator/eida_log_aggregation.py --node NIEP --output-file 202011_NIEP fdsnws-requests.log.2020-11*.bz2 
+    
+
 ### Test
 
 From the projet's root directory run 
 
+    pipenv install
+    pipenv shell
     pytest
     
 ### Aggregation problems
