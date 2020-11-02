@@ -155,9 +155,9 @@ def parse_file(filename):
             else:
                 # TODO This is not very DRY but I did'nt figure a better way to do it for now
                 try:
-                    new_stat = EidaStatistic(date=event_weekday, country=data['userlocation']['country'])
+                    new_stat = EidaStatistic(date=event_weekday, country=data['userLocation']['country'])
                 except KeyError as err:
-                    logging.warning(data)
+                    logging.warning("No key userlocation.country in %s", data)
                     continue
                 new_stat.nb_unsuccessful_requests = 1
                 new_stat.unique_clients.add_raw(mmh3.hash(str(data['userID'])))# TODO avoir son IP
