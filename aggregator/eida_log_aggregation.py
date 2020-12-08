@@ -170,6 +170,7 @@ def parse_file(filename):
 @click.command()
 @click.option('--output-file', type=click.Path(exists=False), help="File to write the statistics to.", default='output_statistics.json')
 @click.option('--eida-node', help="Your EIDA node", type=click.Choice(['GFZ', 'ETHZ', 'RESIF', 'ODC', 'INGV', 'BGR', 'LMU', 'NIEP', 'KOERI', 'NOA', 'UIB', 'ICGC', 'other']), default='other')
+@click.option('--salt', help="Salt to use in order to hash the personal data", envvar='EIDA_SALT', default='pepper2021')
 @click.argument('files', type=click.Path(exists=True), nargs=-1)
 def cli(files, eida_node, output_file):
     """
