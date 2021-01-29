@@ -172,7 +172,7 @@ def parse_file(filename):
 @click.option('--eida-node', help="Your EIDA node", type=click.Choice(['GFZ', 'ETHZ', 'RESIF', 'ODC', 'INGV', 'BGR', 'LMU', 'NIEP', 'KOERI', 'NOA', 'UIB', 'ICGC', 'other']), default='other')
 @click.option('--salt', help="Salt to use in order to hash the personal data", envvar='EIDA_SALT', default='pepper2021')
 @click.argument('files', type=click.Path(exists=True), nargs=-1)
-def cli(files, eida_node, output_file):
+def cli(files, eida_node, output_file, salt):
     """
     Command line interface
     """
