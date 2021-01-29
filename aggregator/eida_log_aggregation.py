@@ -105,14 +105,14 @@ def merge_statistics(stat1, stat2):
             stat2[key] = stat
     return stat2
 
-def end_of_week(event_datetime):
+def begin_of_week(event_datetime):
     """
-    Returns the last day ot week
-    event_datetime is a DateTime or Date object. Must have a weekday() method.
+    Returns the first day of week
+    :param event_datetime is a DateTime or Date object. Must have a weekday() method.
     """
     if not isinstance(event_datetime, date):
         raise TypeError("datetime.date expected")
-    return event_datetime + timedelta(days=(6-event_datetime.weekday()))
+    return event_datetime - timedelta(days=(event_datetime.weekday()))
 
 def parse_file(filename):
     """
@@ -137,7 +137,7 @@ def parse_file(filename):
                 logging.warning("Line %d could not be parsed as JSON. Ignoring", line_number)
             logging.debug(data)
             # Get the event timestamp as object
-            event_weekday = end_of_week(datetime.fromisoformat(data['finished'].strip('Z')).date())
+            event_weekday = begin_of_week(datetime.fromisoformat(data['finished'].strip('Z')).date())
             if data['status'] == "OK":
                 for trace in data['trace']:
                     try:
