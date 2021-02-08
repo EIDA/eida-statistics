@@ -16,6 +16,12 @@ Each node manager should push statistics for their own node. Statistics push sho
 
 The webservice should accept the data with a valid token. The management system should be able to generate a token for a node. Seen section management for the specification.
 
+#### Technical constraints
+
+The statistics system uses HyperLogLog algorithm which is implemented in postgreSQL database and for few languages (as far as I know) which are [https://github.com/svpcom/hyperloglog](python) and [https://github.com/hll/java-hll](java) and maybe [https://github.com/DylanMeeus/MediumCode/blob/master/hyperloglog/main.go](go).
+
+Python implementation has been successfully tested for the aggregator.
+
 ### Get
 
 TODO : describe an API to respond to all the EMB questions
