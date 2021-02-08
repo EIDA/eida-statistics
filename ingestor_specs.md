@@ -14,7 +14,7 @@ The body of the request is a list of statistics in JSON format (should we compre
 
 Each node manager should push statistics for their own node. Statistics push should be as straightforward as possible.
 
-The webservice should accept the data with a valid token. The management system should be able to generate a token for a node. Seen section management for the specification.
+The webservice should accept the data with a valid token. The management system should be able to generate a token for a node. See section management for the specification.
 
 #### Technical constraints
 
