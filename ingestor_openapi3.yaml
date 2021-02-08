@@ -24,7 +24,7 @@ paths:
         description: An aggregation file as created by the aggregator
         content:
           application/json:
-            schema:              
+            schema:
               type: array
               items:
                 $ref: '#/components/schemas/Stat'
@@ -53,7 +53,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Stat'
+              type: array
+              items:
+                $ref: '#/components/schemas/Stat'
         required: true
       responses:
         405:
@@ -63,28 +65,6 @@ paths:
       - bearerAuth:
         - write:eidanode
       x-codegen-request-body-name: body
-  /node:
-    get:
-      tags:
-      - node
-      summary: List the nodes
-      responses:
-        200:
-          description: successful operation
-  /node/{nodeid}:
-    get:
-      tags:
-      - node
-      summary: details about a node
-      parameters:
-      - name: nodeid
-        in: path
-        required: True
-        schema:
-          type: string
-      responses:
-        200:
-          description: successful operation
 
 components:
   schemas:
