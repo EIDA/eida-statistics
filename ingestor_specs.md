@@ -4,17 +4,21 @@
 
 The API has been described in [openapi3 specification format](./ingestor_openapi3.yaml).
 
+
+### PUSH statistics
 Pushing a new statistic or updating it is done with a bearer token wich is used to map the statistic to the correct EIDA node.
 
 The body of the request is a list of statistics in JSON format (should we compress it ?).
-
-### PUSH statistics
 
 #### Authentication considerations
 
 Each node manager should push statistics for their own node. Statistics push should be as straightforward as possible.
 
 The webservice should accept the data with a valid token. The management system should be able to generate a token for a node. Seen section management for the specification.
+
+### Get
+
+TODO : describe an API to respond to all the EMB questions
 
 ## Management
 
