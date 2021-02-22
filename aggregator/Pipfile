@@ -5,11 +5,13 @@ verify_ssl = true
 
 [dev-packages]
 pytest = "*"
+pytest-datafiles = "*"
 
 [packages]
 click = "*"
 python-hll = "*"
 mmh3 = "*"
+requests = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9"

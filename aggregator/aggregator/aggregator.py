@@ -10,6 +10,8 @@ import json
 import bz2
 import mmh3
 import click
+import gzip
+import requests
 from python_hll.hll import HLL
 from python_hll.util import NumberUtil
 
@@ -168,11 +170,16 @@ def parse_file(filename):
     return statistics
 
 @click.command()
-@click.option('--output-file', type=click.Path(exists=False), help="File to write the statistics to.", default='output_statistics.json')
-@click.option('--eida-node', help="Your EIDA node", type=click.Choice(['GFZ', 'ETHZ', 'RESIF', 'ODC', 'INGV', 'BGR', 'LMU', 'NIEP', 'KOERI', 'NOA', 'UIB', 'ICGC', 'other']), default='other')
-@click.option('--salt', help="Salt to use in order to hash the personal data", envvar='EIDA_SALT', default='pepper2021')
+@click.option('--output-directory', type=click.Path(exists=True,dir_okay=True,resolve_path=True),
+              help="File name prefix to write the statistics to. The full output file will be prefix_START_END.json.gz",
+              default='./eida_statistics')
+@click.option('--token',
+              help="Your EIDA token to the statistics webservice. Can be set by TOKEN environment variable",
+              default='', envvar='TOKEN')
+@click.option('--send-to',
+              help="EIDA statistics webservice to post the result.")
 @click.argument('files', type=click.Path(exists=True), nargs=-1)
-def cli(files, eida_node, output_file, salt):
+def cli(files, output_directory, token, send_to):
     """
     Command line interface
     """
@@ -182,13 +189,16 @@ def cli(files, eida_node, output_file, salt):
     statistics = {}
     for stat in statslist:
         statistics = merge_statistics(stat, statistics)
-   
-    with open(output_file, 'w') as dumpfile:
-        dumpfile.write('[')
-        for key, stat in statistics.items():
-            json.dump(stat.to_dict(), dumpfile)
-            dumpfile.write(', ')
-        dumpfile.write('"eida_node": '+eida_node+']')
 
-if __name__ == "__main__":
-    cli()
+    # get start and end of statistics
+    # sort statistics_dict by key, get first and last entry
+    sorted_list = sorted(statistics)
+    output_file = f"{output_directory}/{ sorted_list[0][0:9] }_{ sorted_list[-1][0:9] }.json.gz"
+    logging.info("Statistics will be stored to Gzipped file %s", output_file)
+
+    with gzip.open(output_file, 'wt', encoding='ascii') as dumpfile:
+        dumpfile.write(json.dumps([v for k,v in statistics.items()], default=lambda o: o.to_dict()))
+
+        if send_to is not None and token is not None:
+            logging.info("Posting stat file %s to %s", output_file, send_to)
+            requests.post(send_to, data=dumpfile, headers={'Authorization': 'Bearer ' + token})
