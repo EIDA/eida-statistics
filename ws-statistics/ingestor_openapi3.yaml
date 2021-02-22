@@ -14,7 +14,7 @@ externalDocs:
 servers:
 - url: https://ws.resif.fr/eida/stats/1/
 paths:
-  /submit:
+  /statistic:
     put:
       tags:
         - statistic
@@ -30,14 +30,8 @@ paths:
                 $ref: '#/components/schemas/Stat'
         required: true
       responses:
-        400:
-          description: Invalid ID supplied
-          content: {}
-        404:
-          description: Pet not found
-          content: {}
         405:
-          description: Validation exception
+          description: Invalid input
           content: {}
       security:
       - bearerAuth:
@@ -81,7 +75,6 @@ components:
       - nb_successful_requests
       - nb_unsuccessful_requests
       - clients
-      - eida_node
       type: object
       properties:
         date:
