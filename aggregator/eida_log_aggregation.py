@@ -105,14 +105,14 @@ def merge_statistics(stat1, stat2):
             stat2[key] = stat
     return stat2
 
-def begin_of_week(event_datetime):
+def shift_to_begin_of_month(event_date):
     """
     Returns the first day of week
     :param event_datetime is a DateTime or Date object. Must have a weekday() method.
     """
-    if not isinstance(event_datetime, date):
+    if not isinstance(event_date, date):
         raise TypeError("datetime.date expected")
-    return event_datetime - timedelta(days=(event_datetime.weekday()))
+    return event_date - timedelta(days=(event_date.day-1))
 
 def parse_file(filename):
     """
@@ -137,11 +137,11 @@ def parse_file(filename):
                 logging.warning("Line %d could not be parsed as JSON. Ignoring", line_number)
             logging.debug(data)
             # Get the event timestamp as object
-            event_weekday = begin_of_week(datetime.fromisoformat(data['finished'].strip('Z')).date())
+            event_month = shift_to_begin_of_month(datetime.fromisoformat(data['finished'].strip('Z')).date())
             if data['status'] == "OK":
                 for trace in data['trace']:
                     try:
-                        new_stat = EidaStatistic(date=event_weekday, network=trace['net'], station=trace['sta'], location=trace['loc'], channel=trace['cha'], country=data['userLocation']['country'])
+                        new_stat = EidaStatistic(date=event_month, network=trace['net'], station=trace['sta'], location=trace['loc'], channel=trace['cha'], country=data['userLocation']['country'])
                     except KeyError as err:
                         logging.warning("Key error for data %s", trace)
                         continue
@@ -155,7 +155,7 @@ def parse_file(filename):
             else:
                 # TODO This is not very DRY but I did'nt figure a better way to do it for now
                 try:
-                    new_stat = EidaStatistic(date=event_weekday, country=data['userLocation']['country'])
+                    new_stat = EidaStatistic(date=event_month, country=data['userLocation']['country'])
                 except KeyError as err:
                     logging.warning("No key userlocation.country in %s", data)
                     continue
