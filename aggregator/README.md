@@ -11,27 +11,37 @@ This aggregation result is sent to a central database through a webservice provi
 
 ### Install and execute
 
+From [Pypi](https://pypi.org/project/eida-statistics-aggregator/)
+
+    pip install eida-statistics-aggregator
+    eida_stats_aggregator --help
+    
+
 With `pipenv`, run 
 
     pipenv install
     pipenv shell
-    python aggregator/eida_log_aggregation.py --help
+    pip install -e .
+    eida_stats_aggregator --help
+    
+
     
 For now, the log file from seiscomp is expected to be a list of JSON entries compressed with BZIP2.
+
 
 ### Exemples
 
 Aggregate one bz2 seiscomp logfile:
 
-    python aggregator/eida_log_aggregation.py --node NIEP --output-file 20201102_NIEP fdsnws-requests.log.2020-11-02.bz2
+    eida_stats_aggregator --output-directory aggregates fdsnws-requests.log.2020-11-02.bz2
     
 Also available with stdin:
 
-    echo "fdsnws-requests.log.2020-11-02.bz2" | python aggregator/eida_log_aggregation.py --node NIEP --output-file 20201102_NIEP 
+    echo "fdsnws-requests.log.2020-11-02.bz2" |  eida_stats_aggregator --output-directory
     
 You can also agregate several logfiles:
 
-    python aggregator/eida_log_aggregation.py --node NIEP --output-file 202011_NIEP fdsnws-requests.log.2020-11*.bz2 
+     eida_stats_aggregator --output-directory aggregates fdsnws-requests.log.2020-11-02.bz2  fdsnws-requests.log.2020-11-03.bz2
     
 
 ### Test
@@ -40,7 +50,7 @@ From the projet's root directory run
 
     pipenv install
     pipenv shell
-    pytest
+    python -m pytest tests/test_aggregator.py -s 
     
 ### Aggregation problems
 
