@@ -31,6 +31,7 @@ kwargs = {
     'name': 'eida-statistics-aggregator',
     'version': version,
     'description': 'EIDA nodes statistics aggregator',
+    'python_requires': '>3.8',
     'long_description': readme,
     'author': 'Jonathan Schaeffer',
     'author_email': 'jonathan.schaeffer@univ-grenoble-alpes.fr',

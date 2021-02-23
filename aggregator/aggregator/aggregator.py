@@ -205,4 +205,6 @@ def cli(files, output_directory, token, send_to):
 
         if send_to is not None and token is not None:
             logging.info("Posting stat file %s to %s", output_file, send_to)
-            requests.post(send_to, data=dumpfile, headers={'Authorization': 'Bearer ' + token})
+            dumpfile.seek(0, 0)
+            headers = {'Transfer-Encoding': 'gzip', 'Authorization': 'Bearer ' + token}
+            requests.post(send_to, data=dumpfile, headers=headers)

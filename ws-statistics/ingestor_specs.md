@@ -5,10 +5,13 @@
 The API has been described in [openapi3 specification format](./ingestor_openapi3.yaml).
 
 
-### PUSH statistics
+### Submittinh statistics
 Pushing a new statistic or updating it is done with a bearer token wich is used to map the statistic to the correct EIDA node.
 
-The body of the request is a list of statistics in JSON format (should we compress it ?).
+The body of the request is a list of statistics in JSON format. The transfer can be compressed using the `Transfer-Encoding: gzip` HTTP header.
+
+- POST method is used to submit statistics that will be **appended** (if any exists)
+- PUT method is used to submt statistics that will **overwrite** any existing statistics
 
 #### Authentication considerations
 
@@ -24,7 +27,7 @@ Python implementation has been successfully tested for the aggregator.
 
 ### Get
 
-TODO : describe an API to respond to all the EMB questions
+A get method would allow to retrieve a list of existing statistics for a given node.
 
 ## Management
 
