@@ -193,7 +193,7 @@ def cli(files, output_directory, token, send_to):
     # get start and end of statistics
     # sort statistics_dict by key, get first and last entry
     sorted_list = sorted(statistics)
-    output_file = f"{output_directory}/{ sorted_list[0][0:9] }_{ sorted_list[-1][0:9] }.json.gz"
+    output_file = f"{output_directory}/{ sorted_list[0][0:10] }_{ sorted_list[-1][0:10] }.json.gz"
     logging.info("Statistics will be stored to Gzipped file %s", output_file)
 
     with gzip.open(output_file, 'wt', encoding='ascii') as dumpfile:
