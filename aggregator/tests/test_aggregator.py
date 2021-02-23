@@ -7,8 +7,13 @@ import pytest
 def test_whatever():
     assert True
 
-def test_parse_file():
+def test_parse_bz2_file():
     stats = aggregator.parse_file('./tests/files/test.log.bz2')
+    for key,stat in stats.items():
+        print(stat.info())
+
+def test_parse_plain_file():
+    stats = aggregator.parse_file('./tests/files/test.log')
     for key,stat in stats.items():
         print(stat.info())
 

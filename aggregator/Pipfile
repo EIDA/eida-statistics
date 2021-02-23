@@ -12,6 +12,7 @@ click = "*"
 python-hll = "*"
 mmh3 = "*"
 requests = "*"
+python-magic = "*"
 
 [requires]
 python_version = "3.9"

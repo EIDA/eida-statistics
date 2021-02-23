@@ -12,6 +12,7 @@ import mmh3
 import click
 import gzip
 import requests
+import magic
 from python_hll.hll import HLL
 from python_hll.util import NumberUtil
 
@@ -125,11 +126,14 @@ def parse_file(filename):
 98304, "service": "fdsnws-dataselect", "userEmail": null, "trace": [{"cha": "BHZ", "sta": "EIL", "start": "1997-08-09T00:00:00.0000Z", "net": "GE", "restricted": false, "loc": "", "bytes": 98304, "status": "OK", "end": "1997-08-09T01:00:00.0000Z"}], "status": "OK", "userID": 1497164453}
 {"clientID": "ObsPy/1.2.2 (Windows-10-10.0.18362-SP0, Python 3.7.8)", "finished": "2020-09-18T00:00:01.142527Z", "userLocation": {"country": "ID"}, "created": "2020-09-18T00:00:00.606932Z", "bytes": 19968, "service": "fdsnws-dataselect", "userEmail": null, "trace": [{"cha": "BHN", "sta": "PB11", "start": "2010-09-04T11:59:52.076986Z", "net": "CX", "restricted": false, "loc": "", "bytes": 6656, "status": "OK", "end": "2010-09-04T12:03:32.076986Z"}, {"cha": "BHE", "sta": "PB11", "start": "2010-09-04T11:59:52.076986Z", "net": "CX", "restricted": false, "loc": "", "bytes": 6656, "status": "OK", "end": "2010-09-04T12:03:32.076986Z"}, {"cha": "BHZ", "sta": "PB11", "start": "2010-09-04T11:59:52.076986Z", "net": "CX", "restricted": false, "loc": "", "bytes": 6656, "status": "OK", "end": "2010-09-04T12:03:32.076986Z"}], "status": "OK", "userID": 589198147}
     """
-    logfile = bz2.BZ2File(filename)
+    # Test if it's a bz2 compressed file
+    if magic.from_file(filename).startswith('bzip2 compressed data'):
+        logfile = bz2.BZ2File(filename)
+    else:
+        logfile = open(filename, 'r')
+    # Initializing the counters
     statistics = {}
     line_number = 0
-    # Initializing the counters
-
     with click.progressbar(logfile.readlines()) as bar:
         for jsondata in bar:
             line_number += 1
