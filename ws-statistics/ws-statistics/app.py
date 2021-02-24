@@ -16,7 +16,7 @@ def get_node_from_token(token):
     """
     Returns the node name for a given token.
     Checks if the token is valid.
-    Returns None if the token provided is not in the database
+    Raise ValueError if the token provided is not in the database
     """
     logger.debug("Token: %s", token)
     node = ""
@@ -38,6 +38,7 @@ def get_node_from_token(token):
 def check_payload(payload):
     """
     Checks the payload format before trying to insert
+    TODO
     """
 
 def register_statistics(statistics, node_id, operation='POST'):
@@ -101,7 +102,7 @@ def add_stat():
         node_id = get_node_from_token(request.headers.get('Authentication').lstrip("Bearer "))
     except ValueError:
         return ("No valid token provided", 403)
-#    check_payload(payload)
+    check_payload(payload)
     register_statistics(payload, node_id=node_id, operation=request.method)
 
     return "OK"
