@@ -12,7 +12,7 @@ externalDocs:
   description: EIDA github page
   url: https://github.com/eida/
 servers:
-- url: https://ws.resif.fr/eida/stats/1/
+- url: https://wstest.resif.fr/eida/stats/1/
 paths:
   /statistic:
     put:
@@ -79,22 +79,17 @@ components:
       properties:
         date:
           type: string
-          format: string
+          format: date
         network:
           type: string
-          format: string
         station:
           type: string
-          format: string
         location:
           type: string
-          format: string
         channel:
           type: string
-          format: string
         country:
           type: string
-          format: string
         bytes:
           type: integer
           format: int64
@@ -109,7 +104,6 @@ components:
           format: int64
         clients:
           type: string
-          format: string
           description: a HyperLogLog serialized object
   securitySchemes:
     bearerAuth:
