@@ -55,8 +55,7 @@ def register_statistics(statistics, node_id, operation='POST'):
                 nb_reqs = EXCLUDED.nb_reqs + dataselect_stats.nb_reqs,
                 nb_successful_reqs = EXCLUDED.nb_successful_reqs + dataselect_stats.nb_successful_reqs,
                 nb_failedrequests = EXCLUDED.nb_failedrequests + dataselect_stats.nb_failedrequests,
-                -- WRONG : TODO clients is an HLL object and it's more complicated
-                clients = EXCLUDED.clients + dataselect_stats.clients,
+                clients = EXCLUDED.clients || dataselect_stats.clients,
                 updated_at = EXCLUDED.updated_at
                 """
     elif operation == 'PUT':

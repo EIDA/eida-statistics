@@ -59,25 +59,11 @@ CREATE TABLE public.dataselect_stats (
 ALTER TABLE public.dataselect_stats OWNER TO postgres;
 
 --
--- Name: seq_nodes; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.seq_nodes
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.seq_nodes OWNER TO postgres;
-
---
 -- Name: nodes; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.nodes (
-    id integer DEFAULT nextval('public.seq_nodes'::regclass) NOT NULL,
+    id serial,
     name text,
     contact text
 );
@@ -86,25 +72,11 @@ CREATE TABLE public.nodes (
 ALTER TABLE public.nodes OWNER TO postgres;
 
 --
--- Name: seq_tokens; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public.seq_tokens
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.seq_tokens OWNER TO postgres;
-
---
 -- Name: tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.tokens (
-    id integer DEFAULT nextval('public.seq_tokens'::regclass) NOT NULL,
+    id serial,
     node_id integer,
     value character varying(32),
     valid_from timestamp with time zone NOT NULL,
