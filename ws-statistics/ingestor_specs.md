@@ -15,7 +15,7 @@ The body of the request is a list of statistics in JSON format. The transfer can
 
 If an aggregation file is submitted more than once, the webservice should reply with error 409. The aggregation file uniqueness is identified by a hash computed and kept on the server side.
 
-### Aggregation overlapping problem
+#### Aggregation overlapping problem
 
 The webservice should check for overlapping aggregations and refuse to ingest them (error 409 or what ?).
 
