@@ -31,6 +31,18 @@ Describe all the tokens :
   - `valid_until`: when the token expires
   - `created_at`: timestamp when the token has been created
 
+### table payloads
+
+This table keeps track of all the payloads received. In order to prevent the server to ingest twice the same statistics
+  
+  - `node_id`: reference of the `node(id)` column
+  - `hash`: mmh3 hash of the received payload
+  - `starts_at`: the first date for the statistic (not the month, but the real event)
+  - `ends_at`: the last date for the statistic (not the month, but the real event)
+  - `created_at`: timestamp when the payload has been received
+
+Uniqueness is defined on `node_id` + `hash`
+
 ### table dataselect_stats
 
 Columns definition :
@@ -39,6 +51,7 @@ Columns definition :
   - `date`: the date of the statistics. It's the first day of a month, as the stats are aggregated monthly.
   - `network`: extended seismic network code (eg Z32015)
   - `station`, `location`, `channel`: usual seismological stream identification 
+  - `country`: iso code for the country
   - `bytes`: quantity of data delivered
   - `nb_reqs`: number of total requests
   - `nb_successful_reqs`: number of successful requests (http rc 200)
@@ -47,3 +60,5 @@ Columns definition :
   - `created_at`: timestamp when the statistic has been submitted
   - `updated_at`: timestamp when the statistic has been updated
   
+Uniqueness is defined on `node_id` + `date` + `network` + `station` + `location` + `channel` + `country`
+
