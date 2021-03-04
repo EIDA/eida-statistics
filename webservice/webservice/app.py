@@ -24,7 +24,7 @@ def get_node_from_token(token):
     try:
         with psycopg2.connect(app.config['DBURI']) as conn:
             with conn.cursor() as curs:
-                curs.execute("SELECT nodes.id, nodes.name from nodes join tokens on nodes.id = tokens.node_id where tokens.value=%s and now() between tokens.valid_from and tokens.valid_until", (token,))
+                curs.execute("SELECT nodes.name, nodes.id from nodes join tokens on nodes.id = tokens.node_id where tokens.value=%s and now() between tokens.valid_from and tokens.valid_until", (token,))
                 if curs.rowcount == 1:
                     node, node_id = curs.fetchone()
                 else:
@@ -51,21 +51,31 @@ def register_statistics(statistics, node_id, operation='POST'):
     """
     if operation == 'POST':
         sqlreq = """
-                INSERT INTO dataselect_stats VALUES %s ON CONSTRAINT uniq_stat DO UPDATE SET
+                INSERT INTO dataselect_stats
+                (
+                  node_id, date, network, station, location, channel, country,
+                  bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
+                )
+                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
                 bytes = EXCLUDED.bytes + dataselect_stats.bytes,
                 nb_reqs = EXCLUDED.nb_reqs + dataselect_stats.nb_reqs,
                 nb_successful_reqs = EXCLUDED.nb_successful_reqs + dataselect_stats.nb_successful_reqs,
-                nb_failedrequests = EXCLUDED.nb_failedrequests + dataselect_stats.nb_failedrequests,
+                nb_failed_reqs = EXCLUDED.nb_failed_reqs + dataselect_stats.nb_failed_reqs,
                 clients = EXCLUDED.clients || dataselect_stats.clients,
-                updated_at = EXCLUDED.updated_at
+                updated_at = now()
                 """
     elif operation == 'PUT':
         sqlreq = """
-                INSERT INTO dataselect_stats VALUES %s ON CONSTRAINT uniq_stat DO UPDATE SET
-                bytes = EXCLUDED.bytes
-                nb_reqs = EXCLUDED.nb_reqs
+                INSERT INTO dataselect_stats
+                (
+                  node_id, date, network, station, location, channel, country,
+                  bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
+                )
+                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
+                bytes = EXCLUDED.bytes,
+                nb_reqs = EXCLUDED.nb_reqs,
                 nb_successful_reqs = EXCLUDED.nb_successful_reqs,
-                nb_failedrequests = EXCLUDED.nb_failedrequests,
+                nb_failed_reqs = EXCLUDED.nb_failed_reqs,
                 clients = EXCLUDED.clients,
                 created_at = now()
                 """
@@ -74,16 +84,21 @@ def register_statistics(statistics, node_id, operation='POST'):
         raise ValueError
 
     # Add the nodeid to all elements of payload.
+    # Convert list of dictionary to list of list
+    values_list = []
     for item in statistics:
-        item.update( {"node_id":"node_id", "updated_at": datetime.now()})
+        values_list.append( [
+            node_id, item['date'], item['network'], item['station'], item['location'], item['channel'], item['country'],
+            item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
+        ])
     try:
         with psycopg2.connect(app.config['DBURI']) as conn:
             with conn.cursor() as curs:
                 # Insert bulk
-                execute_values(curs, sqlreq, statistics)
+                execute_values(curs, sqlreq, values_list)
     except psycopg2.Error as err:
         logger.error("Postgresql error %s registering statistic", err.pgcode)
-        logger.errir(err.pgerror)
+        logger.error(err.pgerror)
 
 @app.route('/dataselectstats')
 def welcome():
@@ -95,13 +110,12 @@ def add_stat():
     """
     Adding the posted statistic to the database
     """
-    payload = request.files
-    app.logger.debug("Got payload: %s", payload)
+    payload = request.json
     app.logger.debug("Headers: %s", request.headers.get('Authentication'))
 
     if request.headers.get('Authentication') is not None:
         try:
-            node_id = get_node_from_token(request.headers.get('Authentication').lstrip("Bearer "))
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
         except ValueError:
             return ("No valid token provided", 403)
         except psycopg2.Error:
