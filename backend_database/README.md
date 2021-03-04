@@ -42,8 +42,10 @@ This table keeps track of all the payloads received. In order to prevent the ser
   
   - `node_id`: reference of the `node(id)` column
   - `hash`: mmh3 hash of the received payload
-  - `starts_at`: the first date for the statistic (not the month, but the real event)
-  - `ends_at`: the last date for the statistic (not the month, but the real event)
+  - `version`: the version of the aggregation schema
+  - `generated_at`: the date when the aggregation has been computed
+  - `first_stat_at`: the first date for the statistic (not the month, but the real event)
+  - `last_stat_at`: the last date for the statistic (not the month, but the real event)
   - `created_at`: timestamp when the payload has been received
 
 Uniqueness is defined on `node_id` + `hash`

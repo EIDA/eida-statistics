@@ -40,7 +40,16 @@ steps = [
     value character varying(32),
     valid_from timestamp with time zone NOT NULL,
     valid_until timestamp with time zone NOT NULL,
-    create_at timestamp with time zone DEFAULT now())
+    created_at timestamp with time zone DEFAULT now())
+    """),
+    step("""
+    CREATE TABLE public.payloads (
+    id serial PRIMARY KEY,
+    node_id integer,
+    hash bigint,
+    first_stat_at  timestamp with time zone,
+    last_stat_at  timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now())
     """),
     step("""
     ALTER TABLE ONLY public.dataselect_stats
@@ -52,6 +61,10 @@ steps = [
     """),
     step("""
     ALTER TABLE ONLY public.tokens
+    ADD CONSTRAINT fk_nodes FOREIGN KEY (node_id) REFERENCES public.nodes(id);
+    """),
+    step("""
+    ALTER TABLE ONLY public.payloads
     ADD CONSTRAINT fk_nodes FOREIGN KEY (node_id) REFERENCES public.nodes(id);
     """)
 ]

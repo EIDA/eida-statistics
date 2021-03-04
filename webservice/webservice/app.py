@@ -5,6 +5,7 @@ from datetime import datetime
 import logging
 import psycopg2
 from psycopg2.extras import execute_values
+import mmh3
 from flask import Flask, request
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,28 @@ def check_payload(payload):
     Checks the payload format before trying to insert
     TODO
     """
+
+def register_payload(node_id, payload):
+    """
+    Register payload to database
+    """
+    try:
+        with psycopg2.connect(app.config['DBURI']) as conn:
+            with conn.cursor() as curs:
+                # Insert bulk
+                curs.execute("""
+                INSERT INTO payloads (node_id, hash, version, generated_at)  VALUES
+                (%s, %s, %s, %s, %s, %s)
+                """,
+                             (node_id,
+                              mmh3.hash(str(payload['stats'])),
+                              payload['version'],
+                              payload['generated_at']))
+    except psycopg2.Error as err:
+        logger.error("Postgresql error %s registering statistic", err.pgcode)
+        logger.error(err.pgerror)
+        raise err
+
 
 def register_statistics(statistics, node_id, operation='POST'):
     """
@@ -123,6 +146,11 @@ def add_stat():
     else:
         return ("No token provided. Permission denied", 401)
     check_payload(payload)
+    try:
+      register_payload(node_id, payload)
+    except psycopg2.Error:
+        return ("Internal error", 500)
+
     register_statistics(payload, node_id=node_id, operation=request.method)
 
     return "OK"
