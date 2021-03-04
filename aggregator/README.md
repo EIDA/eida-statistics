@@ -11,6 +11,8 @@ This aggregation result is sent to a central database through a webservice provi
 
 ### Install and execute
 
+This program is intended for python3.6 and more.
+
 From [Pypi](https://pypi.org/project/eida-statistics-aggregator/)
 
     pip install eida-statistics-aggregator
