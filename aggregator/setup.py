@@ -21,6 +21,7 @@ REQUIRES = [
     'python-hll>=0.1.3',
     'requests>=2.0.0',
     'urllib3>=1.20.0',
+    'python-magic'
 ]
 
 description = """
@@ -31,7 +32,7 @@ kwargs = {
     'name': 'eida-statistics-aggregator',
     'version': version,
     'description': 'EIDA nodes statistics aggregator',
-    'python_requires': '>3.8',
+    'python_requires': '>=3.6',
     'long_description': readme,
     'author': 'Jonathan Schaeffer',
     'author_email': 'jonathan.schaeffer@univ-grenoble-alpes.fr',

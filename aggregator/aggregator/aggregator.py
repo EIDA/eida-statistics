@@ -6,6 +6,7 @@ Aggregate and submit metadata
 
 from datetime import datetime, timedelta, date
 import logging
+import sys
 import json
 import bz2
 import mmh3
@@ -13,6 +14,7 @@ import click
 import gzip
 import requests
 import magic
+from . import __version__
 from python_hll.hll import HLL
 from python_hll.util import NumberUtil
 
@@ -143,7 +145,7 @@ def parse_file(filename):
                 logging.warning("Line %d could not be parsed as JSON. Ignoring", line_number)
             logging.debug(data)
             # Get the event timestamp as object
-            event_month = shift_to_begin_of_month(datetime.fromisoformat(data['finished'].strip('Z')).date())
+            event_month = shift_to_begin_of_month(datetime.strptime(data['finished'], '%Y-%m-%dT%H:%M:%S.%fZ',).date())
             if data['status'] == "OK":
                 for trace in data['trace']:
                     try:
@@ -176,17 +178,21 @@ def parse_file(filename):
 @click.command()
 @click.option('--output-directory', type=click.Path(exists=True,dir_okay=True,resolve_path=True),
               help="File name prefix to write the statistics to. The full output file will be prefix_START_END.json.gz",
-              default='./eida_statistics')
+              default='/tmp')
 @click.option('--token',
               help="Your EIDA token to the statistics webservice. Can be set by TOKEN environment variable",
               default='', envvar='TOKEN')
 @click.option('--send-to',
               help="EIDA statistics webservice to post the result.")
+@click.option('--version', is_flag=True)
 @click.argument('files', type=click.Path(exists=True), nargs=-1)
-def cli(files, output_directory, token, send_to):
+def cli(files, output_directory, token, send_to, version):
     """
     Command line interface
     """
+    if version:
+        print(__version__)
+        sys.exit(0)
     statslist = []
     for f in files:
         statslist.append(parse_file(f))
@@ -201,7 +207,10 @@ def cli(files, output_directory, token, send_to):
     logging.info("Statistics will be stored to Gzipped file %s", output_file)
 
     with gzip.open(output_file, 'wt', encoding='ascii') as dumpfile:
-        dumpfile.write(json.dumps([v for k,v in statistics.items()], default=lambda o: o.to_dict()))
+        dumpfile.write(json.dumps({'generated_at': datetime.now().strftime('%Y-%d-%d %H:%M:%S'),
+                                   'version': __version__,
+                                   'stats': [v for k,v in statistics.items()]
+                                   }, default=lambda o: o.to_dict()))
 
         if send_to is not None and token is not None:
             logging.info("Posting stat file %s to %s", output_file, send_to)
