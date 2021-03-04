@@ -31,7 +31,7 @@ def get_node_from_token(token):
                 else:
                     raise ValueError("No valid token found")
     except psycopg2.Error as err:
-        logger.error("Postgresql error %s registering statistic", err)
+        logger.error("Postgresql error %s getting node from token", err.pgcode)
         logger.error(err.pgerror)
         raise err
     logger.info("Token is mapped to node %s", node)
@@ -40,7 +40,6 @@ def get_node_from_token(token):
 def check_payload(payload):
     """
     Checks the payload format before trying to insert
-    TODO
     """
 
 def register_payload(node_id, payload):
@@ -53,15 +52,18 @@ def register_payload(node_id, payload):
                 # Insert bulk
                 curs.execute("""
                 INSERT INTO payloads (node_id, hash, version, generated_at)  VALUES
-                (%s, %s, %s, %s, %s, %s)
+                (%s, %s, %s, %s )
                 """,
                              (node_id,
                               mmh3.hash(str(payload['stats'])),
                               payload['version'],
                               payload['generated_at']))
     except psycopg2.Error as err:
-        logger.error("Postgresql error %s registering statistic", err.pgcode)
+        logger.error("Postgresql error %s registering payload", err.pgcode)
         logger.error(err.pgerror)
+        if err.pgcode == '23505':
+            logger.error("Duplicate payload")
+            raise ValueError
         raise err
 
 
@@ -110,6 +112,7 @@ def register_statistics(statistics, node_id, operation='POST'):
     # Convert list of dictionary to list of list
     values_list = []
     for item in statistics:
+        logger.debug("item: %s", item)
         values_list.append( [
             node_id, item['date'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
@@ -150,7 +153,9 @@ def add_stat():
       register_payload(node_id, payload)
     except psycopg2.Error:
         return ("Internal error", 500)
+    except ValueError:
+        return ("This statistic already exists on the server. Refusing to merge", 400)
 
-    register_statistics(payload, node_id=node_id, operation=request.method)
+    register_statistics(payload['stats'], node_id=node_id, operation=request.method)
 
     return "OK"
