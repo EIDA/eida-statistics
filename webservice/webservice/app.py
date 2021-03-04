@@ -32,6 +32,7 @@ def get_node_from_token(token):
     except psycopg2.Error as err:
         logger.error("Postgresql error %s registering statistic", err)
         logger.error(err.pgerror)
+        raise err
     logger.info("Token is mapped to node %s", node)
     return node_id
 
@@ -98,10 +99,15 @@ def add_stat():
     app.logger.debug("Got payload: %s", payload)
     app.logger.debug("Headers: %s", request.headers.get('Authentication'))
 
-    try:
-        node_id = get_node_from_token(request.headers.get('Authentication').lstrip("Bearer "))
-    except ValueError:
-        return ("No valid token provided", 403)
+    if request.headers.get('Authentication') is not None:
+        try:
+            node_id = get_node_from_token(request.headers.get('Authentication').lstrip("Bearer "))
+        except ValueError:
+            return ("No valid token provided", 403)
+        except psycopg2.Error:
+            return ("Internal error", 500)
+    else:
+        return ("No token provided. Permission denied", 401)
     check_payload(payload)
     register_statistics(payload, node_id=node_id, operation=request.method)
 
