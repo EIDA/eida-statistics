@@ -8,9 +8,14 @@ Then run the container like this :
 
     docker run -e POSTGRES_PASSWORD=password -p 5432:5432 pg-hll 
 
-## Database schema
+## Database schema 
 
-The file `eidastats_schema.sql` contains the database schema.
+### Migrations
+
+Migrations are managed with `yoyo`
+
+  pip install yoyo-migration psycopg2
+  yoyo apply --database postgresql://user:password@host:port/database migrations
 
 ### table nodes
 
