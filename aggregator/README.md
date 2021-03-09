@@ -19,7 +19,7 @@ From [Pypi](https://pypi.org/project/eida-statistics-aggregator/)
     eida_stats_aggregator --help
     
 
-With `pipenv`, run 
+Alternatively, if you want to install with `pipenv` , run 
 
     pipenv install
     pipenv shell
