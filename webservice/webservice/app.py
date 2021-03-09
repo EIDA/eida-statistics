@@ -8,8 +8,6 @@ from psycopg2.extras import execute_values
 import mmh3
 from flask import Flask, request
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 app = Flask(__name__)
 app.config['DBURI']=os.getenv('DBURI', 'postgresql://wseidastats@localhost:5432/eidastatistics')
 
@@ -19,7 +17,7 @@ def get_node_from_token(token):
     Checks if the token is valid.
     Raise ValueError if the token provided is not in the database
     """
-    logger.debug("Token: %s", token)
+    app.logger.debug("Token: %s", token)
     node = ""
     node_id = 0
     try:
@@ -31,38 +29,50 @@ def get_node_from_token(token):
                 else:
                     raise ValueError("No valid token found")
     except psycopg2.Error as err:
-        logger.error("Postgresql error %s getting node from token", err.pgcode)
-        logger.error(err.pgerror)
+        app.logger.error("Postgresql error %s getting node from token", err.pgcode)
+        app.logger.error(err.pgerror)
         raise err
-    logger.info("Token is mapped to node %s", node)
+    app.logger.info("Token is mapped to node %s", node)
     return node_id
 
 def check_payload(payload):
     """
     Checks the payload format before trying to insert
     """
+    check_stats = True
+    check_metadata = 'generated_at' in payload.keys() and 'version' in payload.keys() and 'stats' in payload.keys() and 'days_coverage' in payload.keys()
+    if check_metadata:
+        for stat in payload['stats']:
+            if 'month' in stat.keys() and 'clients' in stat.keys() and 'network' in stat.keys():
+                continue
+            check_stats = False
+    return check_metadata and check_stats
+
 
 def register_payload(node_id, payload):
     """
     Register payload to database
     """
+    coverage = sorted([ datetime.strptime(v, '%Y-%m-%d') for v in payload['days_coverage'] ])
+    app.logger.debug(coverage)
     try:
         with psycopg2.connect(app.config['DBURI']) as conn:
             with conn.cursor() as curs:
                 # Insert bulk
                 curs.execute("""
-                INSERT INTO payloads (node_id, hash, version, generated_at)  VALUES
-                (%s, %s, %s, %s )
+                INSERT INTO payloads (node_id, hash, version, generated_at, coverage)  VALUES
+                (%s, %s, %s, %s, %s )
                 """,
                              (node_id,
                               mmh3.hash(str(payload['stats'])),
                               payload['version'],
-                              payload['generated_at']))
+                              payload['generated_at'],
+                              coverage))
     except psycopg2.Error as err:
-        logger.error("Postgresql error %s registering payload", err.pgcode)
-        logger.error(err.pgerror)
+        app.logger.error("Postgresql error %s registering payload", err.pgcode)
+        app.logger.error(err.pgerror)
         if err.pgcode == '23505':
-            logger.error("Duplicate payload")
+            app.logger.error("Duplicate payload")
             raise ValueError
         raise err
 
@@ -105,16 +115,16 @@ def register_statistics(statistics, node_id, operation='POST'):
                 created_at = now()
                 """
     else:
-        logger.error("Operation %s not supported (POST or PUT only)")
+        app.logger.error("Operation %s not supported (POST or PUT only)")
         raise ValueError
 
     # Add the nodeid to all elements of payload.
     # Convert list of dictionary to list of list
     values_list = []
     for item in statistics:
-        logger.debug("item: %s", item)
+        app.logger.debug("item: %s", item)
         values_list.append( [
-            node_id, item['date'], item['network'], item['station'], item['location'], item['channel'], item['country'],
+            node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
         ])
     try:
@@ -123,8 +133,8 @@ def register_statistics(statistics, node_id, operation='POST'):
                 # Insert bulk
                 execute_values(curs, sqlreq, values_list)
     except psycopg2.Error as err:
-        logger.error("Postgresql error %s registering statistic", err.pgcode)
-        logger.error(err.pgerror)
+        app.logger.error("Postgresql error %s registering statistic", err.pgcode)
+        app.logger.error(err.pgerror)
 
 @app.route('/dataselectstats')
 def welcome():
@@ -148,9 +158,10 @@ def add_stat():
             return ("Internal error", 500)
     else:
         return ("No token provided. Permission denied", 401)
-    check_payload(payload)
+    if not check_payload(payload):
+        return("Malformed payload", 400)
     try:
-      register_payload(node_id, payload)
+        register_payload(node_id, payload)
     except psycopg2.Error:
         return ("Internal error", 500)
     except ValueError:

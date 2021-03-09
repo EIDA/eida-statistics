@@ -8,9 +8,6 @@ __depends__ = {}
 
 steps = [
     step("""
-    CREATE EXTENSION hll;
-    """),
-    step("""
     CREATE TABLE public.dataselect_stats (
     node_id integer,
     date date,
@@ -23,7 +20,7 @@ steps = [
     nb_reqs integer,
     nb_successful_reqs integer,
     nb_failed_reqs integer,
-    clients public.hll,
+    clients public.hll(11,5),
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone)
     """),
@@ -47,6 +44,8 @@ steps = [
     id serial PRIMARY KEY,
     node_id integer,
     hash bigint,
+    generated_at timestamp with time zone,
+    version character varying(32),
     first_stat_at  timestamp with time zone,
     last_stat_at  timestamp with time zone,
     created_at timestamp with time zone DEFAULT now())
