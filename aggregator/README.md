@@ -44,6 +44,19 @@ Also available with stdin:
 You can also agregate several logfiles:
 
      eida_stats_aggregator --output-directory aggregates fdsnws-requests.log.2020-11-02.bz2  fdsnws-requests.log.2020-11-03.bz2
+     
+### Registering the aggregation to the central statistics service
+
+In order to register, you first need a token. Please ask for one by submitting an issue in https://github.com/eida/etc/issues/
+
+When you have a valid token, you can send all your aggregation files with curl :
+
+    gunzip -c aggregationfile.json.gz | curl  --header "Authentication: Bearer MYSECRETTOKEN"  --header "Content-Type: application/json" -d "@-"  https://ws.resif.fr/eidaws/statistics/1/dataselectstats
+    
+The aggregation script can do this for you on the fly :
+
+    eida_stats_aggregator -o aggregates fdsn-requests.log.2020-11-02.bz2 --token MYSECRETTOKEN --sent-to https://ws.resif.fr/eidaws/statistics/1/dataselectstats
+    
     
 
 ### Test
