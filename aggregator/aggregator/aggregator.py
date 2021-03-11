@@ -234,6 +234,6 @@ def cli(files, output_directory, token, send_to, version):
 
     if send_to is not None and token is not None:
         logging.info("Posting stat file %s to %s", output_file, send_to)
-        headers = {'Authentication': 'Bearer ' + token}
+        headers = {'Authentication': 'Bearer ' + token, 'Content-Type': 'application/json'}
         r = requests.post(send_to, data=statistics.to_json(), headers=headers)
         logging.info(r.text)

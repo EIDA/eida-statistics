@@ -6,6 +6,7 @@ import logging
 import psycopg2
 from psycopg2.extras import execute_values
 import mmh3
+import json
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -146,7 +147,19 @@ def add_stat():
     """
     Adding the posted statistic to the database
     """
-    payload = request.json
+    app.logger.info("Receiving statistics")
+    if request.is_json:
+        app.logger.debug("Data is JSON")
+        payload = request.get_json()
+    else:
+        app.logger.debug("Data is sent as other content type. Try to load as JSON")
+        try:
+            payload = json.loads(request.data)
+        except Exception as err:
+            app.logger.error(request.data)
+            app.logger.error(err)
+            return("Data can not be parsed as JSON format", 400)
+
     app.logger.debug("Headers: %s", request.headers.get('Authentication'))
 
     if request.headers.get('Authentication') is not None:
@@ -161,6 +174,7 @@ def add_stat():
     if not check_payload(payload):
         return("Malformed payload", 400)
     try:
+        app.logger.info("Registering statistics")
         register_payload(node_id, payload)
     except psycopg2.Error:
         return ("Internal error", 500)
