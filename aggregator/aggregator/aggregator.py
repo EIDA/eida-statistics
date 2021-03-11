@@ -18,7 +18,7 @@ from . import __version__
 from python_hll.hll import HLL
 from python_hll.util import NumberUtil
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 class EidaStatistic:
     """
