@@ -227,13 +227,13 @@ def cli(files, output_directory, token, send_to, version):
     output_file = f"{output_directory}/{ sorted_list[0] }_{ sorted_list[-1] }.json.gz"
     logging.debug("Statistics will be stored to Gzipped file %s", output_file)
 
-    with gzip.open(output_file, 'wt', encoding='ascii') as dumpfile:
-        dumpfile.write(statistics.to_json())
+    payload = gzip.compress(statistics.to_json().encode('utf-8'))
+    with open(output_file, 'wb') as dumpfile:
+        dumpfile.write(payload)
         logging.info("Statistics stored to %s", output_file)
 
-        if send_to is not None and token is not None:
-            # TODO Send not compressed data
-            logging.info("Posting stat file %s to %s", output_file, send_to)
-            dumpfile.seek(0, 0)
-            headers = {'Content-Encoding': 'gzip', 'Authorization': 'Bearer ' + token}
-            requests.post(send_to, data=dumpfile, headers=headers)
+    if send_to is not None and token is not None:
+        logging.info("Posting stat file %s to %s", output_file, send_to)
+        headers = {'Authentication': 'Bearer ' + token}
+        r = requests.post(send_to, data=statistics.to_json(), headers=headers)
+        logging.info(r.text)
