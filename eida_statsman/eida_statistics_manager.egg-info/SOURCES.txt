@@ -1,0 +1,10 @@
+README.md
+setup.py
+eida_statistics_manager.egg-info/PKG-INFO
+eida_statistics_manager.egg-info/SOURCES.txt
+eida_statistics_manager.egg-info/dependency_links.txt
+eida_statistics_manager.egg-info/entry_points.txt
+eida_statistics_manager.egg-info/requires.txt
+eida_statistics_manager.egg-info/top_level.txt
+eida_statsman/__init__.py
+eida_statsman/eida_statsman.py
