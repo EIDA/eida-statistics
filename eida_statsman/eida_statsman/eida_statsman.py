@@ -3,9 +3,11 @@
 import sys
 import logging
 import click
-import psycopg2
-logging.basicConfig(level=logging.INFO)
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from eida_statsman.model import Node, Token
 
+logging.basicConfig(level=logging.INFO)
 
 @click.group()
 @click.pass_context
@@ -14,27 +16,36 @@ logging.basicConfig(level=logging.INFO)
 @click.option('--debug', '-v', help="Verbose output", is_flag=True)
 def cli(ctx, dburi, noop, debug):
     ctx.ensure_object(dict)
-    ctx.obj['dburi'] = dburi
     ctx.obj['noop'] = dburi
-    if debug is not None:
+    if debug:
         logging.getLogger().setLevel(logging.DEBUG)
-    pass
+    engine = create_engine(dburi)
+    Session = sessionmaker(bind=engine)
+    ctx.obj['session'] = Session()
 
 @click.group()
 @click.pass_context
 def nodes(ctx):
     click.echo("Nodes management")
-    logging.debug("Database URI: %s",ctx.obj['dburi'])
 
 @click.command(name='list')
 @click.pass_context
 def nodes_list(ctx):
     click.echo("Listing nodes")
+    for n in ctx.obj['session'].query(Node):
+        click.echo(n)
+
 
 @click.command(name='add')
 @click.pass_context
-def nodes_add():
+@click.option('--name', '-n', help="Node name")
+@click.option('--contact', '-c', help="Node's contact email")
+def nodes_add(ctx, name, contact):
     click.echo("Adding nodes")
+    ctx.obj['session'].add(Node(name=name, contact=contact))
+    ctx.obj['session'].commit()
+
+
 
 @click.command(name='del')
 @click.pass_context
@@ -48,13 +59,15 @@ def nodes_mv():
 
 @click.group()
 @click.pass_context
-def tokens():
+def tokens(ctx):
     click.echo("Tokens management")
 
 @click.command(name='list')
 @click.pass_context
-def tokens_list():
+def tokens_list(ctx):
     click.echo("Listing tokens")
+    for t in ctx.obj['session'].query(Token):
+        click.echo(t)
 
 @click.command(name='add')
 @click.pass_context
