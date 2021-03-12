@@ -38,13 +38,12 @@ def nodes_list(ctx):
 
 @click.command(name='add')
 @click.pass_context
-@click.option('--name', '-n', help="Node name")
-@click.option('--contact', '-c', help="Node's contact email")
+@click.option('--name', '-n', required=True, help="Node name")
+@click.option('--contact', '-c', required=True, help="Node's contact email")
 def nodes_add(ctx, name, contact):
     click.echo("Adding nodes")
     ctx.obj['session'].add(Node(name=name, contact=contact))
     ctx.obj['session'].commit()
-
 
 
 @click.command(name='del')
