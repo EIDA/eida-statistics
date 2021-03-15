@@ -55,8 +55,7 @@ When you have a valid token, you can send all your aggregation files with curl :
     
 The aggregation script can do this for you on the fly :
 
-    eida_stats_aggregator -o aggregates fdsn-requests.log.2020-11-02.bz2 --token MYSECRETTOKEN --sent-to https://ws.resif.fr/eidaws/statistics/1/dataselectstats
-    
+    eida_stats_aggregator -o aggregates fdsn-requests.log.2020-11-02.bz2 --token MYSECRETTOKEN --send-to https://ws.resif.fr/eidaws/statistics/1/dataselectstats
     
 
 ### Test
