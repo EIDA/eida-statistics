@@ -13,10 +13,12 @@ class Node(Base):
     id = Column(Integer, Sequence('nodes_id_seq'), primary_key=True)
     name = Column(String(16))
     contact = Column(String())
+    created_at = Column(DateTime())
+    updated_at = Column(DateTime())
     tokens = relationship("Token", back_populates="node")
 
     def __repr__(self):
-        return f"id: {self.id}, name: {self.name}, contact: {self.contact}"
+        return f"id: {self.id}, name: {self.name}, contact: {self.contact}, created_at: {self.created_at}, updated_at: {self.updated_at}"
 
 class Token(Base):
     """
@@ -29,10 +31,11 @@ class Token(Base):
     valid_from = Column(DateTime())
     valid_until = Column(DateTime())
     created_at = Column(DateTime())
+    updated_at = Column(DateTime())
     node = relationship("Node", back_populates="tokens")
 
     def __repr__(self):
-        return f"id: {self.id}, node: {self.node.name}, value: {self.value}, valid_from: {self.valid_from}, valid_until: {self.valid_until}, created_at: {self.created_at}"
+        return f"id: {self.id}, node: {self.node.name}, value: {self.value}, valid_from: {self.valid_from}, valid_until: {self.valid_until}, created_at: {self.created_at}, updated_at: {self.updated_at}"
 
 
 class Payload(Base):
