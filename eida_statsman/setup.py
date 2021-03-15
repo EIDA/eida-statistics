@@ -14,14 +14,9 @@ with open('README.md', 'r', encoding='utf-8') as f:
     readme = f.read()
 
 REQUIRES = [
-    'certifi',
     'click>=7.0.0',
-    'mmh3>=2.5.0',
-    'numpy>=1.18.0',
-    'python-hll>=0.1.3',
-    'requests>=2.0.0',
-    'urllib3>=1.20.0',
-    'python-magic'
+    'psycopg2>=2.8.0',
+    'sqlalchemy==1.3'
 ]
 
 description = """
@@ -49,14 +44,12 @@ kwargs = {
         'Programming Language :: Python :: 3',
     ],
     'install_requires': REQUIRES,
-    'tests_require': ['coverage', 'pytest'],
     'packages': find_packages(exclude=('tests', 'tests.*')),
     'include_package_data': True,
     'entry_points': '''
         [console_scripts]
         eida_statsman=eida_statsman.eida_statsman:cli
     ''',
-
 }
 
 setup(**kwargs)
