@@ -77,6 +77,7 @@ def nodes_update(ctx, nodeid, name, contact):
         node.name = name
     if contact:
         node.contact = contact
+    node.updated_at = datetime.now()
     if click.confirm(f"Update node {node}?"):
         ctx.obj['session'].commit()
     else:

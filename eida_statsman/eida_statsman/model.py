@@ -2,6 +2,7 @@
 from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy import func
 
 Base = declarative_base()
 
@@ -13,7 +14,7 @@ class Node(Base):
     id = Column(Integer, Sequence('nodes_id_seq'), primary_key=True)
     name = Column(String(16))
     contact = Column(String())
-    created_at = Column(DateTime())
+    created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
     tokens = relationship("Token", back_populates="node")
 
@@ -30,7 +31,7 @@ class Token(Base):
     value = Column(String)
     valid_from = Column(DateTime())
     valid_until = Column(DateTime())
-    created_at = Column(DateTime())
+    created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
     node = relationship("Node", back_populates="tokens")
 
