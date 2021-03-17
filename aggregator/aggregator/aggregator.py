@@ -172,7 +172,14 @@ class StatCollection():
                     logging.warning("Line %d could not be parsed as JSON. Ignoring", line_number)
                 logging.debug(data)
                 # Get the event timestamp as object
-                event_date = datetime.strptime(data['finished'], '%Y-%m-%dT%H:%M:%S.%fZ',).date()
+                try:
+                    event_date = datetime.strptime(data['finished'], '%Y-%m-%dT%H:%M:%S.%fZ',).date()
+                except ValueError:
+                    try:
+                        event_date = datetime.strptime(data['finished'], '%Y-%m-%dT%H:%M:%SZ',).date()
+                    except ValueError:
+                        logging.warning("Could not parse date %s", data['finished'])
+                        continue
                 try:
                     countrycode = data['userLocation']['country']
                 except KeyError:
