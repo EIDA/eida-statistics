@@ -69,3 +69,26 @@ Columns definition :
   
 Uniqueness is defined on `node_id` + `date` + `network` + `station` + `location` + `channel` + `country`
 
+### view coverage
+
+This view is used as a helper to consult statistics coverage for each node. 
+
+``` sql
+CREATE OR REPLACE VIEW coverage AS 
+    SELECT a.name AS node, unnest(b.stats) AS stat_day FROM
+        (SELECT nodes.id,nodes.name FROM nodes) a 
+        LEFT JOIN 
+        (SELECT node_id, array_agg(splitup) as stats FROM 
+            (select node_id, unnest(coverage) splitup FROM payloads) splitup 
+            group by 1) b 
+        ON a.id=b.node_id;
+```
+
+For instance, in order to get the monthly coverage for a given node :
+
+``` sql
+    select node, a.month, round(count(*)/(SELECT extract(days FROM a.month + interval '1 month - 1 day'))*100) as percent from
+    (select node, date_trunc('month',stat_day) as month, stat_day from coverage where node='RESIF' and
+  date_part('year', stat_day)=2021) as a group by 1,2 order by 1;
+
+```
