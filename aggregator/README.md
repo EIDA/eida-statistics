@@ -39,7 +39,7 @@ Aggregate one bz2 seiscomp logfile:
     
 Also available with stdin:
 
-    echo "fdsnws-requests.log.2020-11-02.bz2" |  eida_stats_aggregator --output-directory
+    cat fdsnws-requests.log.2020-11-02.bz2 |  eida_stats_aggregator --output-directory
     
 You can also agregate several logfiles:
 
