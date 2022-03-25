@@ -21,7 +21,8 @@ REQUIRES = [
     'python-hll>=0.1.3',
     'requests>=2.0.0',
     'urllib3>=1.20.0',
-    'python-magic'
+    'python-magic',
+    'fdsnnetextender>=3.0.0'
 ]
 
 description = """
