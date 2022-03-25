@@ -17,7 +17,9 @@ import magic
 from . import __version__
 from python_hll.hll import HLL
 from python_hll.util import NumberUtil
+from fdsnnetextender import FdsnNetExtender
 
+net_extender = FdsnNetExtender()
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 class EidaStatistic:
@@ -187,7 +189,12 @@ class StatCollection():
                     countrycode = ""
                 if data['status'] == "OK":
                     for trace in data['trace']:
-                        new_stat = EidaStatistic(date=event_date, network=trace['net'], station=trace['sta'], location=trace['loc'], channel=trace['cha'], country=countrycode)
+                        try:
+                            extended_network = net_extender.extend(trace['net'], trace['start'][0:10])
+                        except ValueError as err:
+                            logging.error(err)
+                            sys.exit(1)
+                        new_stat = EidaStatistic(date=event_date, network=extended_network, station=trace['sta'], location=trace['loc'], channel=trace['cha'], country=countrycode)
                         new_stat.nb_successful_requests = 1
                         new_stat.size = trace['bytes']
                         new_stat.unique_clients.add_raw(mmh3.hash(str(data['userID'])))

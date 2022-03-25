@@ -13,6 +13,7 @@ python-hll = "*"
 mmh3 = "*"
 requests = "*"
 python-magic = "*"
+fdsnnetextender = ">=3.0.0"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"
