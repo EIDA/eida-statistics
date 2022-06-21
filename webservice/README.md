@@ -24,3 +24,9 @@ grant SELECT,INSERT,UPDATE on dataselect_stats to wseidastats ;
 grant SELECT,INSERT on payloads to wseidastats ;
 grant SELECT on tokens to wseidastats ;
 ```
+
+## Test with some data to send
+
+You need a valid token to post some data.
+
+    cat aggregated-data.json | curl  --header "Authentication: Bearer ${TOKEN}"  --header "Content-Type: application/json" -d "@-" https://ws.resif.fr/eidaws/statistics/1/dataselect
