@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "bcd22c46d53b383d52eb22c4d0451d9c114e87569b884ba314e580319b862727"
+            "sha256": "35f74a24774fadf3c4ca2337ac37eac57a198cfe3a8903080eddafb05c5010c0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -11,6 +11,11 @@
             {
                 "name": "pypi",
                 "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            },
+            {
+                "name": "fdsnnetextender",
+                "url": "https://gricad-gitlab.univ-grenoble-alpes.fr/api/v4/projects/3693/packages/pypi",
                 "verify_ssl": true
             }
         ]
@@ -49,6 +54,7 @@
                 "sha256:42e3865e5f92b8c4b1f91a86aadc961f3c07943552856f193967394e0b20cada"
             ],
             "index": "pypi",
+            "source": "fdsnnetextender",
             "version": "==3.3.0"
         },
         "idna": {

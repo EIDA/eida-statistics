@@ -3,6 +3,11 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
+[[source]]
+name = "fdsnnetextender"
+url = "https://gricad-gitlab.univ-grenoble-alpes.fr/api/v4/projects/3693/packages/pypi"
+verify_ssl = true
+
 [dev-packages]
 pytest = "*"
 pytest-datafiles = "*"
@@ -13,8 +18,8 @@ python-hll = "*"
 mmh3 = "*"
 requests = "*"
 python-magic = "*"
-fdsnnetextender = ">=3.0.0"
 eida-statistics-aggregator = {editable = true, path = "."}
+fdsnnetextender = { version = ">=3.3.0", source = "fdsnnetextender" }
 
 [requires]
 python_version = "3.10"

@@ -1,4 +1,5 @@
 -i https://pypi.org/simple
+--extra-index-url https://gricad-gitlab.univ-grenoble-alpes.fr/api/v4/projects/3693/packages/pypi
 certifi==2022.9.24 ; python_version >= '3.6'
 charset-normalizer==2.1.1 ; python_full_version >= '3.6.0'
 click==8.1.3
