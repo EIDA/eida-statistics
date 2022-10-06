@@ -14,6 +14,7 @@ mmh3 = "*"
 requests = "*"
 python-magic = "*"
 fdsnnetextender = ">=3.0.0"
+eida-statistics-aggregator = {editable = true, path = "."}
 
 [requires]
 python_version = "3.10"

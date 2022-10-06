@@ -22,7 +22,7 @@ REQUIRES = [
     'requests>=2.0.0',
     'urllib3>=1.20.0',
     'python-magic',
-    'fdsnnetextender>=3.0.0'
+    'fdsnnetextender>=3.3.0'
 ]
 
 description = """
