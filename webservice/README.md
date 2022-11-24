@@ -1,12 +1,14 @@
 # EIDA statistics webservice
 
+The webserice provides an endpoint to send and consult the statistics.
+
 ## Run for developement
 
 Database backend: 
 
-    cd backend_database
-    buildah build -t pg_hll .
-    podman run -d -e POSTGRES_PASSWORD=password -p 5432:5432 postgres-hll -c fsync=no
+    cd ../backend_database
+    docker build -f Dockerfile.pg-hll -t pg-hll .
+    docker run -d -e POSTGRES_PASSWORD=password -p 5432:5432 pg-hll -c fsync=no
     yoyo apply --database postgres://postgre:password@localhost/postgres migrations
     
 Webservice frontend :
@@ -25,8 +27,12 @@ grant SELECT,INSERT on payloads to wseidastats ;
 grant SELECT on tokens to wseidastats ;
 ```
 
-## Test with some data to send
+## Test with some data to ingest
 
 You need a valid token to post some data.
 
     cat aggregated-data.json | curl  --header "Authentication: Bearer ${TOKEN}"  --header "Content-Type: application/json" -d "@-" https://ws.resif.fr/eidaws/statistics/1/dataselect
+
+## Getting statistics
+
+WIP

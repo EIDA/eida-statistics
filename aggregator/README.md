@@ -1,8 +1,9 @@
 # EIDA Statistics aggregation
 
-This project should provide unified statistics about EIDA nodes usage.
-    
+This project provides unified statistics about EIDA nodes usage.
 
+This program is part of the EIDA logging system. The aggregator groups a set of dataselect usage information in order to build a logging statistic ready to be shipped to the central system.
+    
 ## Aggregating data
 
 Each EIDA node prepares an aggregation of their logging file using the same script.
@@ -26,10 +27,7 @@ Alternatively, if you want to install with `pipenv` , run
     pip install -e .
     eida_stats_aggregator --help
     
-
-    
 For now, the log file from seiscomp is expected to be a list of JSON entries compressed with BZIP2.
-
 
 ### Exemples
 

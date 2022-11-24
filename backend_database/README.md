@@ -1,6 +1,6 @@
 ## Containerized postgresql
 
-The file `Dockerfile.pg-hll` builds a postgresql 13 container woth HyperLogLog extension.
+The file `Dockerfile.pg-hll` builds a postgresql 13 container with HyperLogLog extension.
 
     docker build -f Dockerfile.pg-hll -t pg-hll .
     
