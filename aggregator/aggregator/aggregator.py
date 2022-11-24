@@ -25,6 +25,13 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 class EidaStatistic:
     """
     One statistic object.
+    A statistic is for one day, network, station, location, channel, country.
+    It has the following attributes:
+    * size : the amount of data shipped for this statistic
+    * nb_requests : the number of requests
+    * nb_successful_requests : the number of OK requests
+    * nb_unsuccessful_requests: the number of requests that did not deliver any data
+    * unique_clients : a set (hll object) of clients.
     """
 
     def __init__(self, date=datetime.now(), network="", station="", location="--", channel="", country=""):
@@ -45,7 +52,7 @@ class EidaStatistic:
 
     def _shift_to_begin_of_month(self):
         """
-        Set the date as the first day of month
+        Set the date as the first day of month. The statistics are meant to be displayed by month.
         :param event_datetime is a DateTime or Date object. Must have a weekday() method.
         """
         if not isinstance(self.original_day, date):
@@ -54,7 +61,8 @@ class EidaStatistic:
 
     def key(self):
         """
-        Generate a unique key for this object in order to ease
+        Generate a unique key for this object in order to identify it easily and compare 2 objects.
+        2 statistics can be merged if they have the same key.
         """
         return f"{self._shift_to_begin_of_month()}_{self.network}_{self.station}_{self.location}_{self.channel}_{self.country}"
 
@@ -77,6 +85,9 @@ class EidaStatistic:
             logging.warning("Key %s to aggregate differs from called object's key %s", eidastat.key(), self.key())
 
     def info(self):
+        """
+        Return a string describing the object.
+        """
         return f"{self.original_day} {self.network} {self.station} {self.location} {self.channel} from {self.country} {self.size}b {self.nb_successful_requests} successful requests from {self.unique_clients.cardinality()} unique clients"
 
     def to_dict(self):
@@ -98,12 +109,14 @@ class EidaStatistic:
         return json_dict
 
 class StatCollection():
-    """ This object contains a list of EidaStatistics and some metadata related to the aggregation processing
+    """
+    This object contains a list of EidaStatistics and some metadata related to the aggregation processing
     """
 
     def __init__(self):
         """
         :var _stats_days is a list of dates concerning the statistics collection. It is used as metadata to estimate month coverage
+        _statistics is a dictionary of EIDA Statistics. The key is computed whithEidaStatistic.key()
         """
         self._stats_dates = []
         self._generated_at = datetime.now()
@@ -112,7 +125,8 @@ class StatCollection():
 
     def append(self, stat):
         """
-        Append an EidaStatistic object into the collection
+        Append an EidaStatistic object into the collection.
+        During this process, if there is already a statistic with the same key, they will be merged.
         :param stat is an EidaStatistic instance
         """
         if stat.key() in self._statistics:
@@ -124,17 +138,10 @@ class StatCollection():
         if stat.original_day not in self._stats_dates:
             self._stats_dates.append(stat.original_day)
 
-#    def __iadd__(self, statcoll):
-#        """
-#        Incremental add
-#        """
-#        for k,stat in statcoll._statistics.items():
-#            self.append(stat)
-#        for day in statcoll._stats_dates:
-#            if day not in self._stats_dates:
-#                self._stats_dates.append(day)
-
     def get_days(self):
+        """
+        Return a list of sorted dates for this collection.
+        """
         return sorted(self._stats_dates)
 
     def to_json(self):
@@ -165,6 +172,7 @@ class StatCollection():
             logfile = open(filename, 'r')
         # Initializing the counters
         line_number = 0
+        # What about a nice progressbar ?
         with click.progressbar(logfile.readlines(), label=f"Parsing {filename}") as bar:
             for jsondata in bar:
                 line_number += 1
@@ -190,14 +198,18 @@ class StatCollection():
                 if data['status'] == "OK":
                     for trace in data['trace']:
                         try:
+                            # The short network code has to be extended using it's starting year
                             extended_network = net_extender.extend(trace['net'], trace['start'][0:10])
                         except ValueError as err:
                             logging.error(err)
                             sys.exit(1)
+                        # Make an EidaStatistic object using this NSLC + date + country
                         new_stat = EidaStatistic(date=event_date, network=extended_network, station=trace['sta'], location=trace['loc'], channel=trace['cha'], country=countrycode)
+                        # Then push some values in it
                         new_stat.nb_successful_requests = 1
                         new_stat.size = trace['bytes']
                         new_stat.unique_clients.add_raw(mmh3.hash(str(data['userID'])))
+                        # Append this stat to the collection
                         self.append(new_stat)
                 else:
                     # TODO This is not very DRY but I did'nt figure a better way to do it for now
