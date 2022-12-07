@@ -8,6 +8,9 @@ __depends__ = {}
 
 steps = [
     step("""
+    CREATE EXTENSION hll;
+    """),
+    step("""
     CREATE TABLE public.dataselect_stats (
     node_id integer,
     date date,
