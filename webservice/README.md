@@ -9,6 +9,11 @@ Database backend:
     cd ../backend_database
     docker build -f Dockerfile.pg-hll -t pg-hll .
     docker run -d -e POSTGRES_PASSWORD=password -p 5432:5432 pg-hll -c fsync=no
+    cd ../webservice
+    pip instann --user pipenv
+    pipenv install
+    pipenv install yoyo
+    pipenv shell
     yoyo apply --database postgres://postgre:password@localhost/postgres migrations
     
 Webservice frontend :
