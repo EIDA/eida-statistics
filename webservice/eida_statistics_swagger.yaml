@@ -1,0 +1,269 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: EIDA Web Services
+  description: EIDA Web Services
+  termsOfService: https://www.orfeus-eu.org/data/eida/webservices
+  contact:
+    email: info@orfeus.eu
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+paths:
+  /statistics/1/dataselect_stats:
+    get:
+      tags:
+        - Statistics
+      description: returns statistics to be probably processed by computer
+      parameters:
+        - in: query
+          name: start
+          description: Start month for date window; ISO-8601 e.g. 2022-10
+          schema:
+            type: string
+            format: year-month
+        - in: query
+          name: end
+          description: End month for date window; ISO-8601 e.g. 2022-11
+          schema:
+            type: string
+            format: year-month
+        - in: query
+          name: data_center
+          description: Data center code
+          schema:
+            type: string
+        - in: query
+          name: network
+          description: Network code
+          schema:
+            type: string
+        - in: query
+          name: station
+          description: Station code
+          schema:
+            type: string
+        - in: query
+          name: country
+          description: Country code
+          schema:
+            type: string
+        - in: query
+          name: location
+          description: Location code
+          schema:
+            type: string
+        - in: query
+          name: channel
+          description: Channel code
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: '#/components/schemas/StatisticsComputerResponseObject'
+        '204':
+          description: Request was properly formatted and submitted but no data matches the selection
+        '400':
+          description: Bad request due to improper specification, unrecognised parameter, parameter value out of range, etc.
+        '413':
+          description: Request would result in too much data being returned or the request itself is too large
+        '500':
+          description: Internal server error
+        '503':
+          description: Service temporarily unavailable, used in maintenance mode
+  /statistics/1/query:
+    get:
+      tags:
+        - Statistics
+      description: returns human readable statistics
+      parameters:
+        - in: query
+          name: start
+          description: Start month for date window; ISO-8601 e.g. 2022-10
+          schema:
+            type: string
+            format: year-month
+        - in: query
+          name: end
+          description: End month for date window; ISO-8601 e.g. 2022-11
+          schema:
+            type: string
+            format: year-month
+        - in: query
+          name: data_center
+          description: Data center code
+          schema:
+            type: string
+        - in: query
+          name: network
+          description: Network code
+          schema:
+            type: string
+        - in: query
+          name: station
+          description: Station code
+          schema:
+            type: string
+        - in: query
+          name: location
+          description: Location code
+          schema:
+            type: string
+            default: '*'
+        - in: query
+          name: channel
+          description: Channel code
+          schema:
+            type: string
+            default: '*'
+        - in: query
+          name: country
+          description: Country code
+          schema:
+            type: string
+        - in: query
+          name: aggregate_on
+          description: Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,data_center,network,station,country,location,channel.
+          schema:
+            type: string
+            default: location,channel
+        - in: query
+          name: format
+          description: Format of the returned results; text or json
+          schema:
+            type: string
+            default: text
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            text/csv:
+              schema:
+                type: string
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&net=NL&sta=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,data_center,network,station,location,channel,country,num_requests,num_successful_requests,bytes,num_cients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
+            application/json:
+              schema:
+                type: object
+                $ref: '#/components/schemas/StatisticsHumanResponseObject'
+        '204':
+          description: Request was properly formatted and submitted but no data matches the selection
+        '400':
+          description: Bad request due to improper specification, unrecognised parameter, parameter value out of range, etc.
+        '413':
+          description: Request would result in too much data being returned or the request itself is too large
+        '500':
+          description: Internal server error
+        '503':
+          description: Service temporarily unavailable, used in maintenance mode            
+components:
+  schemas:
+    StatisticsComputerResponseObject:
+      type: object
+      properties:
+        version:
+          type: string
+          example: 1.0.0
+        request_parameters:
+          type: string
+          example: 'start=2021-01&end=2021-12&net=NL&sta=STA*&country=GR,FR'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComputerResponseResult'
+    ComputerResponseResult:
+      type: object
+      properties:
+        month:
+          type: string
+          format: year-month
+          example: 2022-11
+        data_center:
+          type: string
+          example: RESIF
+        network:
+          type: string
+          example: NL
+        station:
+          type: string
+          example: HGN
+        location:
+          type: integer
+          example: 00
+        channel:
+          type: string
+          example: HHZ
+        country:
+          type: string
+          example: GR
+        num_requests:
+          type: integer
+          example: 56
+        num_successful_requests:
+          type: integer
+          example: 40
+        bytes:
+          type: integer
+          example: 561234
+        num_clients:
+          type: string
+          example: \x128b7fffffffff8ef137c60000000002832c9b
+          description: HyperLogLog hash object
+    StatisticsHumanResponseObject:
+      type: object
+      properties:
+        version:
+          type: string
+          example: 1.0.0
+        matching:
+          type: string
+          example: 'start=2021-01&end=2021-12&net=NL&sta=STA*&country=GR,FR'
+        aggregated_on:
+          type: string
+          example: 'month,country,location,channel'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HumanResponseResult'
+    HumanResponseResult:
+      type: object
+      properties:
+        month:
+          type: string
+          format: year-month
+          example: '*'
+        data_center:
+          type: string
+          example: RESIF
+        network:
+          type: string
+          example: NL
+        station:
+          type: string
+          example: HGN
+        location:
+          type: string
+          example: '*'
+        channel:
+          type: string
+          example: '*'
+        country:
+          type: string
+          example: '*'
+        num_requests:
+          type: integer
+          example: 56
+        num_successful_requests:
+          type: integer
+          example: 40
+        bytes:
+          type: integer
+          example: 561234
+        num_clients:
+          type: integer
+          example: 34
+          description: This is an evaluation of the internal representation in the database
