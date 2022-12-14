@@ -10,7 +10,7 @@ import json
 from flask import Flask, request
 
 app = Flask(__name__)
-app.config['DBURI']=os.getenv('DBURI', 'postgresql://wseidastats@localhost:5432/eidastatistics')
+app.config['DBURI']=os.getenv('DBURI', 'postgresql://postgres@localhost:5432/eidastats')
 
 def get_node_from_token(token):
     """
