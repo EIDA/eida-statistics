@@ -14,7 +14,7 @@ externalDocs:
 servers:
 - url: https://www.orfeus-eu.org/data/eida/webservices
 paths:
-  /statistics/1/dataselect_stats:
+  /statistics/1/dataselect:
     get:
       tags:
         - Statistics
@@ -164,10 +164,22 @@ paths:
           description: Internal server error
         '503':
           description: Service temporarily unavailable, used in maintenance mode            
+  /statistics/1/health:
+    get:
+      tags:
+        - Statistics
+      description: returns OK message if service running
+      responses:
+        '200':
+          description: Service running and database available
+        '500':
+          description: Internal server error
+        '503':
+          description: Service temporarily unavailable, used in maintenance mode            
   /statistics/1/ingest:
     put:
       tags:
-        - statistic
+        - Statistics
       summary: append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
       operationId: updateStat
       requestBody:
@@ -189,7 +201,7 @@ paths:
       x-codegen-request-body-name: body
     post:
       tags:
-      - statistic
+      - Statistics
       summary: Submit a new statistic aggregation
       operationId: addStat
       requestBody:
