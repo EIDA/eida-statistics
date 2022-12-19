@@ -20,7 +20,7 @@ engine = create_engine(app.config['DBURI'])
 Session = sessionmaker(engine)
 
 
-def check_request_parameters(params):
+def check_request_parameters(request):
     """
     Checks if parameters and values given in a request are acceptable
     Returns dictionary with parameters and their values if acceptable
@@ -30,7 +30,11 @@ def check_request_parameters(params):
     app.logger.debug('Entering check_request_parameters')
 
     accepted = ['start', 'end', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
+    # query method can take 2 more parameters
+    if 'query' in request.url:
+        accepted = accepted + ['aggregate_on', 'format']
     param_value_dict = {}
+    params = request.args
     for key in params:
         if key not in accepted:
             raise KeyError(key)
@@ -40,11 +44,34 @@ def check_request_parameters(params):
             except: raise ValueError(f"'{key}'")
             # dates stored in database as every first day of a month
             param_value_dict[key] = params.get(key) + '-01'
+        elif key == 'format':
+            # format acceptable values: text or json
+            if params.get(key) not in ['text', 'json']:
+                raise ValueError(f"'{key}'")
+            else:
+                param_value_dict[key] = params.get(key)
         else:
             # distinguish values given at each parameter
             # example of params.getlist(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
             temp = [p.split(",") for p in params.getlist(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
+            # aggregate_on parameter special handling
+            if key == 'aggregate_on':
+                if 'all' in param_value_dict[key]:
+                    param_value_dict[key] = ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
+                else:
+                    for aggregator in param_value_dict[key]:
+                        if aggregator not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']:
+                            raise ValueError(f"'{key}'")
+                # default parameters to be aggregated in query method: location, channel
+                if 'location' not in param_value_dict['aggregate_on']:
+                    param_value_dict['aggregate_on'].append('location')
+                if 'channel' not in param_value_dict['aggregate_on']:
+                    param_value_dict['aggregate_on'].append('channel')
+
+    # default parameters to be aggregated in query method: location, channel
+    if 'query' in request.url and 'aggregate_on' not in param_value_dict:
+            param_value_dict['aggregate_on'] = ['location', 'channel']
 
     return param_value_dict
 
@@ -53,6 +80,7 @@ def check_request_parameters(params):
 def dataselect():
     """
     Returns statistics to be read by computer
+    Returns bad request if invalid request parameter given
     """
 
     app.logger.debug('Entering dataselect')
@@ -61,7 +89,7 @@ def dataselect():
     # return dictionary with parameters and values if acceptable
     # otherwise catch error and return bad request
     try:
-        param_value_dict = check_request_parameters(request.args)
+        param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
         return f"BAD REQUEST: invalid parameter " + str(e), 400
@@ -108,6 +136,56 @@ def dataselect():
     # return json with metadata
     return json.dumps({'version': '1.0.0', 'request_parameters': request.query_string.decode(),
                     'results': results}, default=str)
+
+
+@app.route('/statistics/1/query', methods=['GET'])
+def query():
+    """
+    Returns statistics to be used by human
+    Returns bad request if invalid request parameter given
+    """
+
+    app.logger.debug('Entering query')
+
+    # check parameters and values
+    # return dictionary with parameters and values if acceptable
+    # otherwise catch error and return bad request
+    try:
+        param_value_dict = check_request_parameters(request)
+
+    except KeyError as e:
+        return f"BAD REQUEST: invalid parameter " + str(e), 400
+
+    except ValueError as e:
+        return f"BAD REQUEST: invalid value of parameter " + str(e), 400
+
+    app.logger.info('Checked parameters of request')
+
+    session = Session()
+    sqlreq = session.query(DataselectStat).join(Node).\
+                        with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
+                        DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
+                        DataselectStat.bytes, DataselectStat.clients, Node.name)
+    if 'start' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
+    if 'end' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+    if 'network' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
+    if 'station' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
+    if 'country' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
+    if 'location' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
+    if 'channel' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
+    if 'datacenter' in param_value_dict:
+        sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+    session.close()
+
+    # AGGREGATE_ON HANDLING
+
 
 
 @app.route('/statistics/1/health')
