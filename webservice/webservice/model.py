@@ -31,7 +31,7 @@ class DataselectStat(Base):
 
     __tablename__ = 'dataselect_stats'
     node_id = Column(Integer, ForeignKey('nodes.id'), primary_key=True)
-    date = Column(DateTime(), primary_key=True)
+    date = Column(Date(), primary_key=True)
     network = Column(String(6), primary_key=True)
     station = Column(String(5), primary_key=True)
     location = Column(String(2), primary_key=True)
@@ -47,4 +47,5 @@ class DataselectStat(Base):
     node = relationship("Node", back_populates="stats")
 
     def to_dict(self):
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return {'month': self.date, 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
+        'country': self.country, 'bytes': self.bytes, 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}

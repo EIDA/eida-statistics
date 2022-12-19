@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import datetime
-import model
+from model import Node, DataselectStat
 import os
 import logging
 import psycopg2
@@ -27,28 +27,24 @@ def check_request_parameters(params):
     Returns status 400 Bad Request if not acceptable
     """
 
-    app.logger.info('Checking parameters of request')
+    app.logger.debug('Entering check_request_parameters')
 
     accepted = ['start', 'end', 'data_center', 'network', 'station', 'country', 'location', 'channel']
     param_value_dict = {}
     for key in params:
         if key not in accepted:
             raise KeyError(key)
+        elif key in ['start', 'end']:
+            # check date format, must be like 2021-05
+            try: date = datetime.datetime.strptime(params.get(key), "%Y-%m")
+            except: raise ValueError(f"'{key}'")
+            # dates stored in database as every first day of a month
+            param_value_dict[key] = params.get(key) + '-01'
         else:
             # distinguish values given at each parameter
-            # example of params.getlist(key): ["GR,FR", "SP"]
+            # example of params.getlist(key): ["GR,FR", "SP"] from http://url?country=GR,FR&otherparam=value&country=SP
             temp = [p.split(",") for p in params.getlist(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
-        if key == 'start':
-            for p in param_value_dict[key]:
-                try: date = datetime.datetime.strptime(params.get(key))
-                except: raise ValueError(f"'{key}'")
-                if not isinstance(date, "%Y-%m"):
-                    raise ValueError(f"'{key}'")
-        elif key == 'end':
-            .
-            .
-            .
 
     return param_value_dict
 
@@ -59,7 +55,7 @@ def dataselect():
     Returns statistics to be read by computer
     """
 
-    app.logger.info('Entering dataselect')
+    app.logger.debug('Entering dataselect')
 
     # check parameters and values
     # return bad request if not acceptable
@@ -73,16 +69,37 @@ def dataselect():
     except ValueError as e:
         return f"BAD REQUEST: invalid value of parameter " + str(e), 400
 
+    app.logger.info('Checked parameters of request')
+
     #try:
     session = Session()
-    response = session.query(model.DataselectStat).limit(3)
+    sqlreq = session.query(DataselectStat).\
+                        with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
+                        DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
+                        DataselectStat.bytes, DataselectStat.clients)
+    # DATA CENTER MISSING !!!
+    if 'start' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
+    if 'end' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+    if 'network' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
+    if 'station' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
+    if 'country' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
+    if 'location' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
+    if 'channel' in param_value_dict:
+        sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
+    # DATA CENTER MISSING !!!
     session.close()
 
     #except:
         #app.logger.error('Database connection error or invalid SQL statement')
 
     # DON'T FORGET THE METADATA !!!
-    return json.dumps([row.to_dict() for row in response], default=str)
+    return json.dumps([DataselectStat.to_dict(row) for row in sqlreq], default=str)
 
 
 @app.route('/statistics/1/health')
