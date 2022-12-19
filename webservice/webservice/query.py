@@ -24,12 +24,12 @@ def check_request_parameters(params):
     """
     Checks if parameters and values given in a request are acceptable
     Returns dictionary with parameters and their values if acceptable
-    Returns status 400 Bad Request if not acceptable
+    Raises error if not acceptable
     """
 
     app.logger.debug('Entering check_request_parameters')
 
-    accepted = ['start', 'end', 'data_center', 'network', 'station', 'country', 'location', 'channel']
+    accepted = ['start', 'end', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
     param_value_dict = {}
     for key in params:
         if key not in accepted:
@@ -42,7 +42,7 @@ def check_request_parameters(params):
             param_value_dict[key] = params.get(key) + '-01'
         else:
             # distinguish values given at each parameter
-            # example of params.getlist(key): ["GR,FR", "SP"] from http://url?country=GR,FR&otherparam=value&country=SP
+            # example of params.getlist(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
             temp = [p.split(",") for p in params.getlist(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
 
@@ -58,8 +58,8 @@ def dataselect():
     app.logger.debug('Entering dataselect')
 
     # check parameters and values
-    # return bad request if not acceptable
-    # otherwise return dictionary with parameters and values
+    # return dictionary with parameters and values if acceptable
+    # otherwise catch error and return bad request
     try:
         param_value_dict = check_request_parameters(request.args)
 
@@ -71,35 +71,43 @@ def dataselect():
 
     app.logger.info('Checked parameters of request')
 
-    #try:
-    session = Session()
-    sqlreq = session.query(DataselectStat).\
-                        with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
-                        DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
-                        DataselectStat.bytes, DataselectStat.clients)
-    # DATA CENTER MISSING !!!
-    if 'start' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
-    if 'end' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-    if 'network' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
-    if 'station' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
-    if 'country' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
-    if 'location' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
-    if 'channel' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
-    # DATA CENTER MISSING !!!
-    session.close()
+    try:
+        session = Session()
+        sqlreq = session.query(DataselectStat).join(Node).\
+                            with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
+                            DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
+                            DataselectStat.bytes, DataselectStat.clients, Node.name)
+        if 'start' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
+        if 'end' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+        if 'network' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
+        if 'station' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
+        if 'country' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
+        if 'location' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
+        if 'channel' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
+        if 'datacenter' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        session.close()
 
-    #except:
-        #app.logger.error('Database connection error or invalid SQL statement')
+    except:
+        return "Database connection error or invalid SQL statement passed to database", 500
 
-    # DON'T FORGET THE METADATA !!!
-    return json.dumps([DataselectStat.to_dict(row) for row in sqlreq], default=str)
+    # get results as dictionaries and add datacenter name
+    results = []
+    for row in sqlreq:
+        rowToDict = DataselectStat.to_dict(row)
+        rowToDict['datacenter'] = row.name
+        results.append(rowToDict)
+
+    # return json with metadata
+    return json.dumps({'version': '1.0.0', 'request_parameters': request.query_string.decode(),
+                    'results': results}, default=str)
 
 
 @app.route('/statistics/1/health')
@@ -116,4 +124,4 @@ def test_database():
                 return "The service is up and running and database is available!", 200
 
     except:
-        print('Database connection error')
+        return "Database connection error", 500

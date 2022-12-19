@@ -33,7 +33,7 @@ paths:
             type: string
             format: year-month
         - in: query
-          name: data_center
+          name: datacenter
           description: Data center code
           schema:
             type: string
@@ -99,7 +99,7 @@ paths:
             type: string
             format: year-month
         - in: query
-          name: data_center
+          name: datacenter
           description: Data center code
           schema:
             type: string
@@ -132,7 +132,7 @@ paths:
             type: string
         - in: query
           name: aggregate_on
-          description: Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,data_center,network,station,country,location,channel.
+          description: Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,datacenter,network,station,country,location,channel.
           schema:
             type: string
             default: location,channel
@@ -149,7 +149,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&data_center=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,data_center,network,station,location,channel,country,num_requests,num_successful_requests,bytes,num_cients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,datacenter,network,station,location,channel,country,num_requests,num_successful_requests,bytes,num_cients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -163,7 +163,7 @@ paths:
         '500':
           description: Internal server error
         '503':
-          description: Service temporarily unavailable, used in maintenance mode            
+          description: Service temporarily unavailable, used in maintenance mode
   /statistics/1/health:
     get:
       tags:
@@ -175,7 +175,7 @@ paths:
         '500':
           description: Internal server error
         '503':
-          description: Service temporarily unavailable, used in maintenance mode            
+          description: Service temporarily unavailable, used in maintenance mode
   /statistics/1/ingest:
     put:
       tags:
@@ -231,7 +231,7 @@ components:
           example: 1.0.0
         request_parameters:
           type: string
-          example: 'start=2021-01&end=2021-12&data_center=RESIF&network=NL&sta=STA*&country=GR,FR'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&sta=STA*&country=GR,FR'
         results:
           type: array
           items:
@@ -243,7 +243,7 @@ components:
           type: string
           format: year-month
           example: 2022-11
-        data_center:
+        datacenter:
           type: string
           example: RESIF
         network:
@@ -282,7 +282,7 @@ components:
           example: 1.0.0
         matching:
           type: string
-          example: 'start=2021-01&end=2021-12&data_center=RESIF&network=NL&station=STA*&country=GR,FR'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR'
         aggregated_on:
           type: string
           example: 'month,country,location,channel'
@@ -297,7 +297,7 @@ components:
           type: string
           format: year-month
           example: '*'
-        data_center:
+        datacenter:
           type: string
           example: RESIF
         network:
