@@ -49,3 +49,7 @@ class DataselectStat(Base):
     def to_dict(self):
         return {'month': str(self.date)[:-3], 'datacenter': '', 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
         'country': self.country, 'bytes': self.bytes, 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
+
+    def to_dict_for_query(self):
+        return {'month': '', 'datacenter': '', 'network': '', 'station': '', 'location': '', 'channel': '',
+        'country': '', 'bytes': self.bytes, 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import datetime
+import re
 from model import Node, DataselectStat
 import os
 import logging
 import psycopg2
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
+from sqlalchemy.sql import func, text
 import json
 from flask import Flask, request
 
@@ -71,7 +72,10 @@ def check_request_parameters(request):
 
     # default parameters to be aggregated in query method: location, channel
     if 'query' in request.url and 'aggregate_on' not in param_value_dict:
-            param_value_dict['aggregate_on'] = ['location', 'channel']
+        param_value_dict['aggregate_on'] = ['location', 'channel']
+    # default output format: text
+    if 'query' in request.url and 'format' not in param_value_dict:
+        param_value_dict['foramt'] = 'text'
 
     return param_value_dict
 
@@ -162,14 +166,36 @@ def query():
     app.logger.info('Checked parameters of request')
 
     session = Session()
-    sqlreq = session.query(DataselectStat).join(Node).\
-                        with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
-                        DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
-                        DataselectStat.bytes, DataselectStat.clients, Node.name)
+    sqlreq = session.query(DataselectStat).join(Node).with_entities()
+
+    # if aggregate on a parameter don't select it
+    # instead return '*' for it meaning all matching instances of parameter
+    if 'month' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.date)
+    if 'datacenter' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(Node.name)
+    if 'network' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.network)
+    if 'station' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.station)
+    if 'country' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.country)
+    if 'location' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.location)
+    if 'channel' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.add_columns(DataselectStat.channel)
+
+    # fields to be summed up
+    sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),\
+                func.sum(DataselectStat.bytes).label('bytes'), func.sum(text('#dataselect_stats.clients')).label('clients'))
+
+    # where clause
     if 'start' in param_value_dict:
         sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
     if 'end' in param_value_dict:
         sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+    if 'datacenter' in param_value_dict:
+        sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
     if 'network' in param_value_dict:
         sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
     if 'station' in param_value_dict:
@@ -180,12 +206,51 @@ def query():
         sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
     if 'channel' in param_value_dict:
         sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
-    if 'datacenter' in param_value_dict:
-        sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+
+    # aggregate on requested parameters
+    # group_by is the opposite process of the desired aggregation
+    if 'month' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.date)
+    if 'datacenter' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(Node.name)
+    if 'network' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.network)
+    if 'station' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.station)
+    if 'country' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.country)
+    if 'location' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.location)
+    if 'channel' not in param_value_dict['aggregate_on']:
+        sqlreq = sqlreq.group_by(DataselectStat.channel)
     session.close()
 
-    # AGGREGATE_ON HANDLING
+    print(str(sqlreq)) # DEBUGGING
 
+    # get results as dictionaries
+    # assign '*' at aggregated parameters
+    results = []
+    for row in sqlreq:
+        rowToDict = DataselectStat.to_dict_for_query(row)
+        rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['network'] = row.network if 'network' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['station'] = row.station if 'station' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['location'] = row.location if 'location' not in param_value_dict['aggregate_on'] else '*'
+        rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
+        results.append(rowToDict)
+
+
+    # FORMAT TEXT !!!
+
+    # return text or json with metadata
+    if param_value_dict['format'] == 'json':
+        #return json.dumps([row for row in sqlreq], default=str)
+        return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
+                    'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str)
+    else:
+        return 'stg'
 
 
 @app.route('/statistics/1/health')
