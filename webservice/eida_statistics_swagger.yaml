@@ -149,7 +149,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,datacenter,network,station,location,channel,country,num_requests,num_successful_requests,bytes,num_cients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -261,16 +261,16 @@ components:
         country:
           type: string
           example: GR
-        num_requests:
-          type: integer
-          example: 56
-        num_successful_requests:
-          type: integer
-          example: 40
         bytes:
           type: integer
           example: 561234
-        num_clients:
+        nb_reqs:
+          type: integer
+          example: 56
+        nb_successful_reqs:
+          type: integer
+          example: 40
+        clients:
           type: string
           example: \x128b7fffffffff8ef137c60000000002832c9b
           description: HyperLogLog hash object
@@ -315,16 +315,16 @@ components:
         country:
           type: string
           example: '*'
-        num_requests:
-          type: integer
-          example: 56
-        num_successful_requests:
-          type: integer
-          example: 40
         bytes:
           type: integer
           example: 561234
-        num_clients:
+        nb_reqs:
+          type: integer
+          example: 56
+        nb_successful_reqs:
+          type: integer
+          example: 40
+        clients:
           type: integer
           example: 34
           description: This is an evaluation of the internal representation in the database

@@ -6,7 +6,7 @@ from model import Node, DataselectStat
 import os
 import logging
 import psycopg2
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
 import json
@@ -56,6 +56,10 @@ def check_request_parameters(request):
             # example of params.getlist(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
             temp = [p.split(",") for p in params.getlist(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
+            # wildcards handling
+            if key in ['network', 'station', 'location', 'channel']:
+                param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
+                param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
             # aggregate_on parameter special handling
             if key == 'aggregate_on':
                 if 'all' in param_value_dict[key]:
@@ -75,7 +79,7 @@ def check_request_parameters(request):
         param_value_dict['aggregate_on'] = ['location', 'channel']
     # default output format: text
     if 'query' in request.url and 'format' not in param_value_dict:
-        param_value_dict['foramt'] = 'text'
+        param_value_dict['format'] = 'text'
 
     return param_value_dict
 
@@ -83,7 +87,7 @@ def check_request_parameters(request):
 @app.route('/statistics/1/dataselect', methods=['GET'])
 def dataselect():
     """
-    Returns statistics to be read by computer
+    Returns statistics to be used by computer
     Returns bad request if invalid request parameter given
     """
 
@@ -113,18 +117,42 @@ def dataselect():
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+        if 'datacenter' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
         if 'network' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
+            multiOR = or_()
+            for net in param_value_dict['network']:
+                if '%' or '_' in net:
+                    multiOR = or_(multiOR, DataselectStat.network.like(net))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.network == net)
+            sqlreq = sqlreq.filter(multiOR)
         if 'station' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
+            multiOR = or_()
+            for sta in param_value_dict['station']:
+                if '%' or '_' in sta:
+                    multiOR = or_(multiOR, DataselectStat.station.like(sta))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.station == sta)
+            sqlreq = sqlreq.filter(multiOR)
         if 'country' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
         if 'location' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
+            multiOR = or_()
+            for loc in param_value_dict['location']:
+                if '%' or '_' in loc:
+                    multiOR = or_(multiOR, DataselectStat.location.like(loc))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.location == loc)
+            sqlreq = sqlreq.filter(multiOR)
         if 'channel' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
-        if 'datacenter' in param_value_dict:
-            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+            multiOR = or_()
+            for cha in param_value_dict['channel']:
+                if '%' or '_' in cha:
+                    multiOR = or_(multiOR, DataselectStat.channel.like(cha))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.channel == cha)
+            sqlreq = sqlreq.filter(multiOR)
         session.close()
 
     except:
@@ -145,7 +173,7 @@ def dataselect():
 @app.route('/statistics/1/query', methods=['GET'])
 def query():
     """
-    Returns statistics to be used by human
+    Returns statistics to be read by human
     Returns bad request if invalid request parameter given
     """
 
@@ -165,67 +193,93 @@ def query():
 
     app.logger.info('Checked parameters of request')
 
-    session = Session()
-    sqlreq = session.query(DataselectStat).join(Node).with_entities()
+    try:
+        session = Session()
+        sqlreq = session.query(DataselectStat).join(Node).with_entities()
 
-    # if aggregate on a parameter don't select it
-    # instead return '*' for it meaning all matching instances of parameter
-    if 'month' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.date)
-    if 'datacenter' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(Node.name)
-    if 'network' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.network)
-    if 'station' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.station)
-    if 'country' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.country)
-    if 'location' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.location)
-    if 'channel' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.add_columns(DataselectStat.channel)
+        # if aggregate on a parameter don't select it
+        # instead return '*' for it meaning all matching instances of parameter
+        if 'month' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.date)
+        if 'datacenter' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(Node.name)
+        if 'network' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.network)
+        if 'station' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.station)
+        if 'country' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.country)
+        if 'location' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.location)
+        if 'channel' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.channel)
 
-    # fields to be summed up
-    sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),\
-                func.sum(DataselectStat.bytes).label('bytes'), func.sum(text('#dataselect_stats.clients')).label('clients'))
+        # fields to be summed up
+        sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),\
+                    func.sum(DataselectStat.bytes).label('bytes'), func.sum(text('#dataselect_stats.clients')).label('clients'))
 
-    # where clause
-    if 'start' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
-    if 'end' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-    if 'datacenter' in param_value_dict:
-        sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
-    if 'network' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
-    if 'station' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.station.in_(param_value_dict['station']))
-    if 'country' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
-    if 'location' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.location.in_(param_value_dict['location']))
-    if 'channel' in param_value_dict:
-        sqlreq = sqlreq.filter(DataselectStat.channel.in_(param_value_dict['channel']))
+        # where clause
+        if 'start' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
+        if 'end' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+        if 'datacenter' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'network' in param_value_dict:
+            multiOR = or_()
+            for net in param_value_dict['network']:
+                if '%' or '_' in net:
+                    multiOR = or_(multiOR, DataselectStat.network.like(net))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.network == net)
+            sqlreq = sqlreq.filter(multiOR)
+        if 'station' in param_value_dict:
+            multiOR = or_()
+            for sta in param_value_dict['station']:
+                if '%' or '_' in sta:
+                    multiOR = or_(multiOR, DataselectStat.station.like(sta))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.station == sta)
+            sqlreq = sqlreq.filter(multiOR)
+        if 'country' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
+        if 'location' in param_value_dict:
+            multiOR = or_()
+            for loc in param_value_dict['location']:
+                if '%' or '_' in loc:
+                    multiOR = or_(multiOR, DataselectStat.location.like(loc))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.location == loc)
+            sqlreq = sqlreq.filter(multiOR)
+        if 'channel' in param_value_dict:
+            multiOR = or_()
+            for cha in param_value_dict['channel']:
+                if '%' or '_' in cha:
+                    multiOR = or_(multiOR, DataselectStat.channel.like(cha))
+                else:
+                    multiOR = or_(multiOR, DataselectStat.channel == cha)
+            sqlreq = sqlreq.filter(multiOR)
 
-    # aggregate on requested parameters
-    # group_by is the opposite process of the desired aggregation
-    if 'month' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.date)
-    if 'datacenter' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(Node.name)
-    if 'network' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.network)
-    if 'station' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.station)
-    if 'country' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.country)
-    if 'location' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.location)
-    if 'channel' not in param_value_dict['aggregate_on']:
-        sqlreq = sqlreq.group_by(DataselectStat.channel)
-    session.close()
+        # aggregate on requested parameters
+        # group_by is the opposite process of the desired aggregation
+        if 'month' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.date)
+        if 'datacenter' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(Node.name)
+        if 'network' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.network)
+        if 'station' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.station)
+        if 'country' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.country)
+        if 'location' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.location)
+        if 'channel' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.channel)
+        session.close()
 
-    print(str(sqlreq)) # DEBUGGING
+    except:
+        return "Database connection error or invalid SQL statement passed to database", 500
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
@@ -241,16 +295,21 @@ def query():
         rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
         results.append(rowToDict)
 
-
-    # FORMAT TEXT !!!
-
-    # return text or json with metadata
+    # return json or text with metadata
     if param_value_dict['format'] == 'json':
-        #return json.dumps([row for row in sqlreq], default=str)
         return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
-                    'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str)
+                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str)
     else:
-        return 'stg'
+        csvText = "# version: 1.0.0<br># matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string.decode()) +\
+            "<br># aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
+            "<br>month,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+        for res in results:
+            csvText += '<br>'
+            for field in res:
+                csvText += str(res[field]) + ','
+            csvText = csvText[:-1]
+
+        return csvText
 
 
 @app.route('/statistics/1/health')
