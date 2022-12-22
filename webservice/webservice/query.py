@@ -9,6 +9,7 @@ import psycopg2
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
+from sqlalchemy.sql.expression import literal, literal_column
 import json
 from flask import Flask, request
 
@@ -216,7 +217,7 @@ def query():
 
         # fields to be summed up
         sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),\
-                    func.sum(DataselectStat.bytes).label('bytes'), func.sum(text('#dataselect_stats.clients')).label('clients'))
+                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
 
         # where clause
         if 'start' in param_value_dict:
@@ -285,6 +286,10 @@ def query():
     # assign '*' at aggregated parameters
     results = []
     for row in sqlreq:
+
+        print(row.keys())
+        print(row)
+
         rowToDict = DataselectStat.to_dict_for_query(row)
         rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
         rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
