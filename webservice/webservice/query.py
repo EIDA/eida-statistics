@@ -121,7 +121,7 @@ def dataselect():
         if 'datacenter' in param_value_dict:
             sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
         if 'network' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for net in param_value_dict['network']:
                 if '%' or '_' in net:
                     multiOR = or_(multiOR, DataselectStat.network.like(net))
@@ -227,7 +227,7 @@ def query():
         if 'datacenter' in param_value_dict:
             sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
         if 'network' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for net in param_value_dict['network']:
                 if '%' or '_' in net:
                     multiOR = or_(multiOR, DataselectStat.network.like(net))
