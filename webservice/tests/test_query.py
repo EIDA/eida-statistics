@@ -48,9 +48,9 @@ def test_wrong_parameter(client):
     assert response.status_code == 400 and 'invalid parameter' in str(response.data)
 
 
-def test_wrong_parameter_value(client):
+def test_wrong_parameter_value_date(client):
     """
-    Check request with invalid parameter given
+    Check request with invalid value of date parameter given
     """
 
     response = client.get('/statistics/1/query?start=stg')
@@ -58,9 +58,29 @@ def test_wrong_parameter_value(client):
     assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
 
 
+def test_wrong_parameter_value_aggregate(client):
+    """
+    Check request with invalid value of aggregate_on parameter given
+    """
+
+    response = client.get('/statistics/1/query?aggregate_on=stg')
+
+    assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
+
+
+def test_wrong_parameter_value_format(client):
+    """
+    Check request with invalid value of format parameter given
+    """
+
+    response = client.get('/statistics/1/query?format=stg')
+
+    assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
+
+
 def test_correct_request(client):
     """
-    Check request with invalid parameter given
+    Check correct request
     """
 
     response = client.get('/statistics/1/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter')
