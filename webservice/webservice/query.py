@@ -114,6 +114,7 @@ def dataselect():
                             with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
                             DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
                             DataselectStat.bytes, DataselectStat.clients, Node.name)
+        # where clause
         if 'start' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
@@ -129,7 +130,7 @@ def dataselect():
                     multiOR = or_(multiOR, DataselectStat.network == net)
             sqlreq = sqlreq.filter(multiOR)
         if 'station' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for sta in param_value_dict['station']:
                 if '%' or '_' in sta:
                     multiOR = or_(multiOR, DataselectStat.station.like(sta))
@@ -139,7 +140,7 @@ def dataselect():
         if 'country' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
         if 'location' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for loc in param_value_dict['location']:
                 if '%' or '_' in loc:
                     multiOR = or_(multiOR, DataselectStat.location.like(loc))
@@ -147,7 +148,7 @@ def dataselect():
                     multiOR = or_(multiOR, DataselectStat.location == loc)
             sqlreq = sqlreq.filter(multiOR)
         if 'channel' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for cha in param_value_dict['channel']:
                 if '%' or '_' in cha:
                     multiOR = or_(multiOR, DataselectStat.channel.like(cha))
@@ -235,7 +236,7 @@ def query():
                     multiOR = or_(multiOR, DataselectStat.network == net)
             sqlreq = sqlreq.filter(multiOR)
         if 'station' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for sta in param_value_dict['station']:
                 if '%' or '_' in sta:
                     multiOR = or_(multiOR, DataselectStat.station.like(sta))
@@ -245,7 +246,7 @@ def query():
         if 'country' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
         if 'location' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for loc in param_value_dict['location']:
                 if '%' or '_' in loc:
                     multiOR = or_(multiOR, DataselectStat.location.like(loc))
@@ -253,7 +254,7 @@ def query():
                     multiOR = or_(multiOR, DataselectStat.location == loc)
             sqlreq = sqlreq.filter(multiOR)
         if 'channel' in param_value_dict:
-            multiOR = or_()
+            multiOR = or_(False)
             for cha in param_value_dict['channel']:
                 if '%' or '_' in cha:
                     multiOR = or_(multiOR, DataselectStat.channel.like(cha))
