@@ -288,9 +288,6 @@ def query():
     results = []
     for row in sqlreq:
 
-        print(row.keys())
-        print(row)
-
         rowToDict = DataselectStat.to_dict_for_query(row)
         rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
         rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
