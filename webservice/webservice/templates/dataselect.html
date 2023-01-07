@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <style>
+      /* Add some styling to the form */
+      form {
+        width: 500px;
+        margin: 0 auto;
+        text-align: left;
+      }
+      table {
+        width: 100%;
+      }
+      td {
+        padding: 10px;
+      }
+      input[type="text"] {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      /* Add some styling to the result link */
+      a#result {
+        display: block;
+        margin: 20px auto;
+        padding: 10px 20px;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <form>
+      <table>
+        <tr>
+          <td>Base URL:</td>
+          <td><input type="text" id="base-url" value="http://localhost:5000/statistics/1/dataselect" readonly></td>
+        </tr>
+        <tr>
+          <td>Start:</td>
+          <td><input type="month" id="start"></td>
+        </tr>
+        <tr>
+          <td>End:</td>
+          <td><input type="month" id="end"></td>
+        </tr>
+        <tr>
+          <td>Datacenter:</td>
+          <td><input type="text" id="datacenter"></td>
+        </tr>
+        <tr>
+          <td>Network:</td>
+          <td><input type="text" id="network"></td>
+        </tr>
+        <tr>
+          <td>Station:</td>
+          <td><input type="text" id="station"></td>
+        </tr>
+        <tr>
+          <td>Country:</td>
+          <td><input type="text" id="country"></td>
+        </tr>
+        <tr>
+          <td>Location:</td>
+          <td><input type="text" id="location"></td>
+        </tr>
+        <tr>
+          <td>Channel:</td>
+          <td><input type="text" id="channel"></td>
+        </tr>
+      </table>
+      <button type="button" onclick="buildUrl()">Build URL</button>
+    </form>
+
+    <a id="result"></a>
+
+    <script>
+      function buildUrl() {
+        // Get the base URL and parameters from the input fields
+        var baseUrl = document.getElementById("base-url").value;
+        const params = []
+        params[0] = document.getElementById("start");
+        params[1] = document.getElementById("end");
+        params[2] = document.getElementById("datacenter");
+        params[3] = document.getElementById("network");
+        params[4] = document.getElementById("station");
+        params[5] = document.getElementById("country");
+        params[6] = document.getElementById("location");
+        params[7] = document.getElementById("channel");
+
+        // Initialize the result URL with the base URL
+        var result = baseUrl;
+        // Add ? to the URL when a parameter is found
+        var atLeastOneParam = false;
+        for (p of params) {
+          if (p.value) {
+            if (!atLeastOneParam) {
+              result += "?";
+              atLeastOneParam = true;
+            }
+            else result += "&"
+            result += p.id + "=" + p.value;
+          }
+        }
+
+        // Display the final result URL
+        document.getElementById("result").href = result
+        document.getElementById("result").innerHTML = result
+      }
+    </script>
+
+  </body>
+</html>

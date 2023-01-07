@@ -9,7 +9,7 @@ import psycopg2
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
-from sqlalchemy.sql.expression import literal, literal_column
+from sqlalchemy.sql.expression import literal_column
 import json
 from flask import Flask, request
 
