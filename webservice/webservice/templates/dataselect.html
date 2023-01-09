@@ -3,17 +3,45 @@
 
   <head>
     <style>
-      /* Add some styling to the form */
+      body {
+        margin: 25px 50px;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        text-align: center;
+        color: #004d99;
+      }
+      h2 {
+        margin-top: 30px;
+        margin-bottom: 20px;
+        color: #004d99;
+      }
       form {
         width: 500px;
         margin: 0 auto;
         text-align: left;
       }
-      table {
+      table#builder {
         width: 100%;
       }
-      td {
+      #builder td {
         padding: 10px;
+      }
+      table#parameters{
+        border-collapse: collapse;
+        width: 75%;
+        margin: 0 auto;
+      }
+      #parameters th, #parameters td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      #parameters tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+      #parameters th {
+        background-color: #004d99;
+        color: white;
       }
       input[type="text"] {
         width: 100%;
@@ -28,21 +56,32 @@
         border: none;
         cursor: pointer;
       }
-      /* Add some styling to the result link */
       a#result {
         display: block;
         margin: 20px auto;
         padding: 10px 20px;
+        color: #004d99;
         text-decoration: none;
         border: none;
         cursor: pointer;
+      }
+      a#result:hover {
+        text-decoration: underline;
+      }
+      tfoot {
+        font-size: 0.8em;
+        color: #666;
       }
     </style>
   </head>
 
   <body>
+    <h1>Dataselect Method</h1>
+
+    <h2>URL Builder</h2>
+
     <form>
-      <table>
+      <table id="builder">
         <tr>
           <td>Base URL:</td>
           <td><input type="text" id="base-url" value="http://localhost:5000/statistics/1/dataselect" readonly></td>
@@ -84,6 +123,64 @@
     </form>
 
     <a id="result"></a>
+
+    <h2>Parameters</h2>
+
+    <table id="parameters">
+      <tr>
+        <th>Parameter</th>
+        <th>Example</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>Start</td>
+        <td>2021-05</td>
+        <td>Statistics are queried for requests made starting from this month</td>
+      </tr>
+      <tr>
+        <td>End</td>
+        <td>2021-12</td>
+        <td>Statistics are queried for requests made until this month</td>
+      </tr>
+      <tr>
+        <td>Datacenter</td>
+        <td>RESIF</td>
+        <td>Statistics are queried for requests made to this EIDA node</td>
+      </tr>
+      <tr>
+        <td>Network</td>
+        <td>HL</td>
+        <td>Statistics are queried for requests made for this network;
+          wildcards * for at least one character and ? for exactly one character can be used</td>
+      </tr>
+      <tr>
+        <td>Station</td>
+        <td>NOAIC,STA*</td>
+        <td>Statistics are queried for requests made for this station;
+        wildcards * for at least one character and ? for exactly one character can be used</td>
+      </tr>
+      <tr>
+        <td>Location</td>
+        <td>00</td>
+        <td>Statistics are queried for requests made for this location of station;
+        wildcards * for at least one character and ? for exactly one character can be used</td>
+      </tr>
+      <tr>
+        <td>Channel</td>
+        <td>HHZ</td>
+        <td>Statistics are queried for requests made for this channel of station;
+        wildcards * for at least one character and ? for exactly one character can be used</td>
+      </tr>
+      <tr>
+        <td>Country</td>
+        <td>FR</td>
+        <td>Statistics are queried for requests made from this country</td>
+      </tr>
+      <tfoot>
+        <tr><td colspan=3 align="justify"><b>Note:</b> For all parameters except <i>Start</i> and <i>End</i> multiple comma-separated
+          values are possible.</td></tr>
+      </tfoot>
+    </table>
 
     <script>
       function buildUrl() {

@@ -11,7 +11,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
 from sqlalchemy.sql.expression import literal_column
 import json
-from flask import Flask, request
+from flask import Flask, request, render_template
+
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -20,6 +21,50 @@ logging.basicConfig(level=logging.DEBUG)
 app.config['DBURI'] = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
 engine = create_engine(app.config['DBURI'])
 Session = sessionmaker(engine)
+
+
+@app.route('/statistics/1/')
+def documentation():
+    """
+    Shows the documentation page of the statistics webservice
+    """
+
+    return render_template('doc.html')
+
+
+@app.route('/statistics/1/dataselect/builder')
+def dataselect_builder():
+    """
+    Builder and documentation page for the dataselect method
+    """
+
+    return render_template('dataselect.html')
+
+
+@app.route('/statistics/1/query/builder')
+def query_builder():
+    """
+    Builder and documentation page for the query method
+    """
+
+    return render_template('query.html')
+
+
+@app.route('/statistics/1/health')
+def test_database():
+    """
+    Returns a 200 OK message if the webservice is running and database is available
+    """
+
+    try:
+        with psycopg2.connect(app.config['DBURI']) as conn:
+            with conn.cursor() as curs:
+                curs.execute("select * from dataselect_stats limit 3")
+                response = curs.fetchall()
+                return "The service is up and running and database is available!", 200
+
+    except:
+        return "Database connection error", 500
 
 
 def check_request_parameters(request):
@@ -313,20 +358,3 @@ def query():
             csvText = csvText[:-1]
 
         return csvText
-
-
-@app.route('/statistics/1/health')
-def test_database():
-    """
-    Returns a 200 OK message if the webservice is running and database is available
-    """
-
-    try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
-            with conn.cursor() as curs:
-                curs.execute("select * from dataselect_stats limit 3")
-                response = curs.fetchall()
-                return "The service is up and running and database is available!", 200
-
-    except:
-        return "Database connection error", 500
