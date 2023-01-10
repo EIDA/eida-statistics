@@ -14,7 +14,7 @@ externalDocs:
 servers:
 - url: https://www.orfeus-eu.org/data/eida/webservices
 paths:
-  /statistics/1/dataselect:
+  /statistics/1/dataselectstats:
     get:
       tags:
         - Statistics
