@@ -122,6 +122,9 @@ def check_request_parameters(request):
                 if 'channel' not in param_value_dict['aggregate_on']:
                     param_value_dict['aggregate_on'].append('channel')
 
+    # make some parameters mandatory
+    if 'start' not in param_value_dict and 'end' not in param_value_dict:
+        raise LookupError
     # default parameters to be aggregated in query method: location, channel
     if 'query' in request.url and 'aggregate_on' not in param_value_dict:
         param_value_dict['aggregate_on'] = ['location', 'channel']
@@ -152,6 +155,9 @@ def dataselectstats():
 
     except ValueError as e:
         return f"BAD REQUEST: invalid value of parameter " + str(e), 400
+
+    except LookupError:
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400
 
     app.logger.info('Checked parameters of request')
 
@@ -239,6 +245,9 @@ def query():
 
     except ValueError as e:
         return f"BAD REQUEST: invalid value of parameter " + str(e), 400
+
+    except LookupError:
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400
 
     app.logger.info('Checked parameters of request')
 
@@ -335,15 +344,16 @@ def query():
     results = []
     for row in sqlreq:
 
-        rowToDict = DataselectStat.to_dict_for_query(row)
-        rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['network'] = row.network if 'network' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['station'] = row.station if 'station' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['location'] = row.location if 'location' not in param_value_dict['aggregate_on'] else '*'
-        rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
-        results.append(rowToDict)
+        if row != (None, None, None, None):
+            rowToDict = DataselectStat.to_dict_for_query(row)
+            rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['network'] = row.network if 'network' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['station'] = row.station if 'station' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['location'] = row.location if 'location' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
+            results.append(rowToDict)
 
     # return json or text with metadata
     if param_value_dict['format'] == 'json':

@@ -87,7 +87,7 @@
       <table id="builder">
         <tr>
           <td>Base URL:</td>
-          <td><input type="text" id="base-url" value="http://localhost:5000/statistics/1/query" readonly></td>
+          <td><input type="text" id="base-url" value="http://localhost:5000/query" readonly></td>
         </tr>
         <tr>
           <td>Start:</td>
@@ -249,20 +249,20 @@
 
     <ul>
       <li>Statistics during 2021 for specific station:<br>
-        <a href="http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country">
-          http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country</a></li>
+        <a href="http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country">
+          http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country</a></li>
       <li>Statistics during 2021 for each network of RESIF datacenter:<br>
-        <a href="http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country">
-          http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country</a></li>
+        <a href="http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country">
+          http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country</a></li>
       <li>Statistics for each month of 2021 for requests made to specific station only from Greece and Germany:<br>
-        <a href="http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country">
-          http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country</a></li>
+        <a href="http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country">
+          http://localhost:5000/query?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country</a></li>
       <li>Statistics during 2021 for requests made from each country in JSON format:<br>
-        <a href="http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json">
-          http://localhost:5000/statistics/1/query?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json</a></li>
-      <li>All time statistics in all EIDA nodes:<br>
-        <a href="http://localhost:5000/statistics/1/query?aggregate_on=all">
-          http://localhost:5000/statistics/1/query?aggregate_on=all</a></li>
+        <a href="http://localhost:5000/query?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json">
+          http://localhost:5000/query?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json</a></li>
+      <li>All time statistics until 2018 in all EIDA nodes:<br>
+        <a href="http://localhost:5000/query?end=2018-12&aggregate_on=all">
+          http://localhost:5000/query?end=2018-12&aggregate_on=all</a></li>
     </ul>
 
     <script>
