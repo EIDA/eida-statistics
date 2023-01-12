@@ -19,11 +19,14 @@ from flask import Flask, request, render_template
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-# define database uri to connect to database
+# define database URI to connect to database
 app.config['DBURI'] = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
 engine = create_engine(app.config['DBURI'])
 Session = sessionmaker(engine)
 
+# define server URL
+app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
+app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
 @app.route('/')
 def documentation():
@@ -31,7 +34,9 @@ def documentation():
     Shows the documentation page of the statistics webservice
     """
 
-    return render_template('doc.html')
+    return render_template('doc.html',
+        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselectstats/builder',
+        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/query/builder')
 
 
 @app.route('/dataselectstats/builder')
@@ -40,7 +45,8 @@ def dataselectstats_builder():
     Builder and documentation page for the dataselectstats method
     """
 
-    return render_template('dataselectstats.html')
+    return render_template('dataselectstats.html',
+        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselectstats')
 
 
 @app.route('/query/builder')
@@ -49,7 +55,8 @@ def query_builder():
     Builder and documentation page for the query method
     """
 
-    return render_template('query.html')
+    return render_template('query.html',
+        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/query')
 
 
 @app.route('/health')
@@ -151,13 +158,13 @@ def dataselectstats():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400
+        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/json'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400
+        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/json'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/json'}
 
     app.logger.info('Checked parameters of request')
 
@@ -211,7 +218,7 @@ def dataselectstats():
         session.close()
 
     except:
-        return "Database connection error or invalid SQL statement passed to database", 500
+        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/json'}
 
     # get results as dictionaries and add datacenter name
     results = []
@@ -222,7 +229,7 @@ def dataselectstats():
 
     # return json with metadata
     return json.dumps({'version': '1.0.0', 'request_parameters': request.query_string.decode(),
-                    'results': results}, default=str)
+                    'results': results}, default=str), {'Content-Type': 'text/json'}
 
 
 @app.route('/query', methods=['GET'])
@@ -241,13 +248,13 @@ def query():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400
+        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/json'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400
+        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/json'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/json'}
 
     app.logger.info('Checked parameters of request')
 
@@ -337,7 +344,7 @@ def query():
         session.close()
 
     except:
-        return "Database connection error or invalid SQL statement passed to database", 500
+        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/json'}
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
@@ -358,18 +365,18 @@ def query():
     # return json or text with metadata
     if param_value_dict['format'] == 'json':
         return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
-                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str)
+                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str), {'Content-Type': 'text/json'}
     else:
-        csvText = "# version: 1.0.0<br># matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string.decode()) +\
-            "<br># aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
-            "<br>month,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+        csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string.decode()) +\
+            "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
+            "\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
-            csvText += '<br>'
+            csvText += '\n'
             for field in res:
                 csvText += str(res[field]) + ','
             csvText = csvText[:-1]
 
-        return csvText
+        return csvText, {'Content-Type': 'text/json'}
 
 
 def get_node_from_token(token):
@@ -496,10 +503,6 @@ def register_statistics(statistics, node_id, operation='POST'):
     except psycopg2.Error as err:
         app.logger.error("Postgresql error %s registering statistic", err.pgcode)
         app.logger.error(err.pgerror)
-
-@app.route('/dataselectstats')
-def welcome():
-    return "Welcome to dataselect statistics. Please POST your statistics."
 
 
 @app.route('/dataselectstats',methods=['POST', 'PUT'])
