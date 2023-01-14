@@ -35,28 +35,28 @@ def documentation():
     """
 
     return render_template('doc.html',
-        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselectstats/builder',
-        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/query/builder')
+        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats/builder',
+        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query/builder')
 
 
-@app.route('/dataselectstats/builder')
+@app.route('/dataselect/stats/builder')
 def dataselectstats_builder():
     """
     Builder and documentation page for the dataselectstats method
     """
 
     return render_template('dataselectstats.html',
-        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselectstats')
+        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats')
 
 
-@app.route('/query/builder')
+@app.route('/dataselect/query/builder')
 def query_builder():
     """
     Builder and documentation page for the query method
     """
 
     return render_template('query.html',
-        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/query')
+        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query')
 
 
 @app.route('/health')
@@ -142,7 +142,7 @@ def check_request_parameters(request):
     return param_value_dict
 
 
-@app.route('/dataselectstats', methods=['GET'])
+@app.route('/dataselect/stats', methods=['GET'])
 def dataselectstats():
     """
     Returns statistics to be used by computer
@@ -232,7 +232,7 @@ def dataselectstats():
                     'results': results}, default=str), {'Content-Type': 'text/json'}
 
 
-@app.route('/query', methods=['GET'])
+@app.route('/dataselect/query', methods=['GET'])
 def query():
     """
     Returns statistics to be read by human
@@ -505,7 +505,7 @@ def register_statistics(statistics, node_id, operation='POST'):
         app.logger.error(err.pgerror)
 
 
-@app.route('/dataselectstats',methods=['POST', 'PUT'])
+@app.route('/dataselect',methods=['POST', 'PUT'])
 def add_stat():
     """
     Adding the posted statistic to the database

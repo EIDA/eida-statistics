@@ -249,19 +249,19 @@
 
     <ul>
       <li>Statistics during 2021 for specific station:<br>
-        <a href="/query?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country">
+        <a href="{{ url_query }}?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country">
           {{ url_query }}?start=2021-01&end=2021-12&datacenter=RESIF&network=FR&station=CIEL&aggregate_on=month,country</a></li>
       <li>Statistics during 2021 for each network of RESIF datacenter:<br>
-        <a href="/query?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country">
+        <a href="{{ url_query }}?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country">
           {{ url_query }}?start=2021-01&end=2021-12&datacenter=RESIF&aggregate_on=month,station,country</a></li>
       <li>Statistics for each month of 2021 for requests made to specific station only from Greece and Germany:<br>
-        <a href="/query?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country">
+        <a href="{{ url_query }}?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country">
           {{ url_query }}?start=2021-01&end=2021-12&datacenter=GFZ&network=GE&station=APE&country=GR,GE&aggregate_on=country</a></li>
       <li>Statistics during 2021 for requests made from each country in JSON format:<br>
-        <a href="/query?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json">
+        <a href="{{ url_query }}?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json">
           {{ url_query }}?start=2021-01&end=2021-12&aggregate_on=month,datacenter,network,station&format=json</a></li>
       <li>All time statistics until 2018 in all EIDA nodes:<br>
-        <a href="/query?end=2018-12&aggregate_on=all">
+        <a href="{{ url_query }}?end=2018-12&aggregate_on=all">
           {{ url_query }}?end=2018-12&aggregate_on=all</a></li>
     </ul>
 

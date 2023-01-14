@@ -43,7 +43,7 @@ def test_wrong_parameter(client):
     Check request with invalid parameter given
     """
 
-    response = client.get('/query?wrong=stg')
+    response = client.get('/dataselect/query?wrong=stg')
 
     assert response.status_code == 400 and 'invalid parameter' in str(response.data)
 
@@ -53,7 +53,7 @@ def test_wrong_parameter_value_date(client):
     Check request with invalid value of date parameter given
     """
 
-    response = client.get('/query?start=stg')
+    response = client.get('/dataselect/query?start=stg')
 
     assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
 
@@ -63,7 +63,7 @@ def test_wrong_parameter_value_aggregate(client):
     Check request with invalid value of aggregate_on parameter given
     """
 
-    response = client.get('/query?aggregate_on=stg')
+    response = client.get('/dataselect/query?aggregate_on=stg')
 
     assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
 
@@ -73,7 +73,7 @@ def test_wrong_parameter_value_format(client):
     Check request with invalid value of format parameter given
     """
 
-    response = client.get('/query?format=stg')
+    response = client.get('/dataselect/query?format=stg')
 
     assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
 
@@ -83,6 +83,6 @@ def test_correct_request(client):
     Check correct request
     """
 
-    response = client.get('/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter')
+    response = client.get('/dataselect/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter')
 
     assert response.status_code == 200
