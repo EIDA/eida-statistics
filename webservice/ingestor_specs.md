@@ -2,11 +2,11 @@
 
 ## API specification
 
-The API has been described in [openapi3 specification format](./ingestor_openapi3.yaml).
+The API has been described in [openapi3 specification format](./eida_statistics_swagger.yaml).
 
 
 ### Submitting statistics
-Pushing a new statistic or updating it is done with a bearer token wich is used to map the statistic to the correct EIDA node.
+Pushing a new statistic or updating it is done with a bearer token which is used to map the statistic to the correct EIDA node.
 
 The body of the request is a list of statistics in JSON format. The transfer can be compressed using the `Transfer-Encoding: gzip` HTTP header.
 
@@ -50,7 +50,7 @@ The system should be able to generate tokens with date validity for each node. T
   - node_id : reference to the node
   - generated_at : generation date of the token
   - expires_at : expiration date
-  
+
 A management tool should be provided as a command line interface to manage the tokens and the nodes.
 
     eida_statsman <subcommand> <action> <options>
@@ -59,21 +59,21 @@ Subcommands are :
 
   - node
   - token
-  
+
 Actions are :
 
   - list
   - add
   - del
   - update
-  
+
 The management tool will edit the postgreSQL statistics database in order to manage nodes and tokens. The database URI `postgresql://dbuser:dbpass@dbhost:dbport/dbname` should be provided as an environment variable (`DBURI` for instance)
 The operator is responsible for generating the tokens and transmit them to the contact persons.
 
 The contact persons have to notify the operator if the token has to be changed.
 
 
-  
+
 ### eida_stasman node
 
    - list: list registered nodes
@@ -87,7 +87,7 @@ The contact persons have to notify the operator if the token has to be changed.
    - update: updates information about a node
      - --name RESIF --contact newcontact@resif.fr
      - will ask for confirmation by re-typing the node name
-     
+
 ### eida_statsman token
 
   - list: lists all registerd active tokens. Optional arguments allow selection of nodes :
@@ -99,6 +99,4 @@ The contact persons have to notify the operator if the token has to be changed.
   - del: delete a token
     - --token-id specify the token ID to delete.
      - will ask for confirmation by re-typing the node name
-  - update: do not implement 
-
-
+  - update: do not implement
