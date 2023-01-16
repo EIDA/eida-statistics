@@ -266,6 +266,55 @@
     </ul>
 
     <script>
+      // script for autocomplete datacenters parameterODC
+      var datacenters = ['ODC', 'KOERI', 'UIB-NORSAR', 'NIEP', 'LMU', 'GEOFON', 'INGV', 'ICGC', 'ETH', 'BGR', 'NOA', 'AFAD', 'RESIF'];
+      var input = document.getElementById("datacenter");
+
+      input.addEventListener("keyup", autocomplete);
+
+      function autocomplete() {
+        closeAllLists();
+        var currentFocus;
+        var inputValue = input.value.split(",").pop();
+        var selected = input.value.split(",");
+        var list = document.createElement("div");
+        list.setAttribute("id", this.id + "autocomplete-list");
+        list.setAttribute("class", "autocomplete-items");
+        this.parentNode.appendChild(list);
+
+        for (var i = 0; i < datacenters.length; i++) {
+          if(selected.indexOf(datacenters[i]) != -1) continue;
+          if (datacenters[i].substr(0, inputValue.length) == inputValue) {
+            var option = document.createElement("div");
+            option.innerHTML = "<strong>" + datacenters[i].substr(0, inputValue.length) + "</strong>";
+            option.innerHTML += datacenters[i].substr(inputValue.length);
+            option.innerHTML += "<input type='hidden' value='" + datacenters[i] + "'>";
+            option.addEventListener("click", function(e) {
+              var remainingLetters = this.getElementsByTagName("input")[0].value.substr(inputValue.length);
+              input.value = input.value + remainingLetters;
+              closeAllLists();
+              input.focus();
+            });
+            list.appendChild(option);
+          }
+        }
+      }
+
+      function closeAllLists(elmnt) {
+        var x = Array.from(document.getElementsByClassName("autocomplete-items"));
+        for (var i = 0; i < x.length; i++) {
+          if (elmnt != x[i] && elmnt != input) {
+            x[i].remove();
+          }
+        }
+      }
+
+      document.addEventListener("click", function (e) {
+          closeAllLists(e.target);
+      });
+
+
+      // script to build URL
       function buildUrl() {
         // Get the base URL and parameters from the input fields
         var baseUrl = document.getElementById("base-url").value;
