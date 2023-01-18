@@ -158,13 +158,13 @@ def dataselectstats():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/json'}
+        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/json'}
+        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/json'}
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
 
     app.logger.info('Checked parameters of request')
 
@@ -218,7 +218,7 @@ def dataselectstats():
         session.close()
 
     except:
-        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/json'}
+        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/plain'}
 
     # get results as dictionaries and add datacenter name
     results = []
@@ -229,7 +229,7 @@ def dataselectstats():
 
     # return json with metadata
     return json.dumps({'version': '1.0.0', 'request_parameters': request.query_string.decode(),
-                    'results': results}, default=str), {'Content-Type': 'text/json'}
+                    'results': results}, default=str), {'Content-Type': 'application/json'}
 
 
 @app.route('/dataselect/query', methods=['GET'])
@@ -248,13 +248,13 @@ def query():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/json'}
+        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/json'}
+        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/json'}
+        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
 
     app.logger.info('Checked parameters of request')
 
@@ -344,7 +344,7 @@ def query():
         session.close()
 
     except:
-        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/json'}
+        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'application/json'}
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
@@ -365,7 +365,7 @@ def query():
     # return json or text with metadata
     if param_value_dict['format'] == 'json':
         return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
-                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str), {'Content-Type': 'text/json'}
+                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str), {'Content-Type': 'application/json'}
     else:
         csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string.decode()) +\
             "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
@@ -376,7 +376,7 @@ def query():
                 csvText += str(res[field]) + ','
             csvText = csvText[:-1]
 
-        return csvText, {'Content-Type': 'text/json'}
+        return csvText, {'Content-Type': 'text/csv'}
 
 
 def get_node_from_token(token):
