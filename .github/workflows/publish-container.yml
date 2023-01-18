@@ -38,6 +38,6 @@ jobs:
         with:
           context: webservice
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ SHORT_SHA }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}
           labels: ${{ steps.meta.outputs.labels }}
           file: webservice/Dockerfile
