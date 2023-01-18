@@ -1,64 +1,89 @@
 openapi: 3.0.1
 info:
   title: EIDA statistics service
-  description: "This is the description of EIDA's statistics service, used to submit statistics files and to get statistics"
-  contact:
-    email: info@orfeus.eu
+  description: |
+    This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/nodes/">EIDA</a> federation.<br>
+    This documentation lists all the methods and details the usage possibilities available over HTTP protocol.
+
   version: 1.0.0
 externalDocs:
-  description: EIDA github page
-  url: https://github.com/eida/
+  description: Webservice github page
+  url: https://github.com/eida/eida-statistics/webservice
 servers:
-- url: https://www.orfeus-eu.org/data/eida/webservices
+  - url: https://ws.resif.fr/eidaws/statistics/1
 paths:
   /dataselect/stats:
     get:
       tags:
         - Statistics
-      description: returns statistics to be probably processed by computer
+      description: |
+        Get statistics meant to be convenient for programs.
       parameters:
         - in: query
           name: start
-          description: Start month for date window; ISO-8601 e.g. 2022-10
+          description: Start month for time window; ISO-8601 e.g. 2022-10
           schema:
             type: string
             format: year-month
+            default: 2022.01
         - in: query
           name: end
-          description: End month for date window; ISO-8601 e.g. 2022-11
+          description: End month for time window; ISO-8601 e.g. 2022-11
           schema:
             type: string
             format: year-month
+            default: 2022.06
         - in: query
           name: datacenter
-          description: Data center code
+          description: |
+            One or several data centers member of EIDA federation (see full list).
           schema:
-            type: string
+            type: array
+            items:
+              $ref: '#/components/schemas/NodesResponseObject'
+            default: RESIF
+          explode: false
         - in: query
           name: network
-          description: Network code
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Coma separated list is possible.
           schema:
             type: string
+            default: Z32015,FR
         - in: query
           name: station
           description: Station code
           schema:
             type: string
+            default: CIEL
         - in: query
           name: country
           description: Country code
           schema:
             type: string
+            default: FR
         - in: query
           name: location
           description: Location code
           schema:
             type: string
+            default: 00
         - in: query
           name: channel
           description: Channel code
           schema:
             type: string
+            default: HNZ
+        - in: query
+          name: format
+          description: |
+            Output format. Specify 'csv' or 'json'
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+            default: json
       responses:
         '200':
           description: Successful request, results follow
@@ -165,7 +190,8 @@ paths:
     put:
       tags:
         - Statistics
-      summary: append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
+      summary: |
+        Append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
       operationId: updateStat
       requestBody:
         description: An aggregation file as created by the aggregator, JSON gzipped.
@@ -206,20 +232,41 @@ paths:
       - bearerAuth:
         - write:eidanode
       x-codegen-request-body-name: body
-  /health:
+  /_health:
     get:
       tags:
-        - Statistics
-      description: returns OK message if service running
+        - Internal
+      description: Returns OK message if service available and correctly connected to the database backend.
       responses:
         '200':
-          description: Service running and database available
+          description: Service running and database available.
         '500':
-          description: Internal server error
+          description: Internal server error.
         '503':
-          description: Service temporarily unavailable, used in maintenance mode
+          description: Service temporarily unavailable, used in maintenance mode.
+  /_nodes:
+    get:
+      tags:
+        - Internal
+      description: |
+        Get list of nodes. Meant for internal use.
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: '#/components/schemas/NodesResponseObject'
 components:
   schemas:
+    NodesResponseObject:
+      description: |
+        List of EIDA datacenters.
+      type: array
+      items:
+        type: string
+      example: '[RESIF,NOA,GFZ]'
     StatisticsComputerResponseObject:
       type: object
       properties:
