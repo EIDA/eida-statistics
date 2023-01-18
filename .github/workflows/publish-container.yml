@@ -37,6 +37,6 @@ jobs:
         with:
           context: webservice
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.GITHUB_SHA }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref }}
           labels: ${{ steps.meta.outputs.labels }}
           file: webservice/Dockerfile
