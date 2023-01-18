@@ -37,6 +37,8 @@ jobs:
         with:
           context: webservice
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags:
+            - ${{ env.GITHUB_SHA }}
+            - ${{ env.GITHUB_REF }}
           labels: ${{ steps.meta.outputs.labels }}
           file: webservice/Dockerfile
