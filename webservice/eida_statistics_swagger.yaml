@@ -77,7 +77,7 @@ paths:
           description: Internal server error
         '503':
           description: Service temporarily unavailable, used in maintenance mode
-  /dataselect//query:
+  /dataselect/query:
     get:
       tags:
         - Statistics
@@ -161,19 +161,7 @@ paths:
           description: Internal server error
         '503':
           description: Service temporarily unavailable, used in maintenance mode
-  /statistics/1/health:
-    get:
-      tags:
-        - Statistics
-      description: returns OK message if service running
-      responses:
-        '200':
-          description: Service running and database available
-        '500':
-          description: Internal server error
-        '503':
-          description: Service temporarily unavailable, used in maintenance mode
-  /statistics/1/ingest:
+  /dataselect:
     put:
       tags:
         - Statistics
@@ -218,6 +206,18 @@ paths:
       - bearerAuth:
         - write:eidanode
       x-codegen-request-body-name: body
+  /health:
+    get:
+      tags:
+        - Statistics
+      description: returns OK message if service running
+      responses:
+        '200':
+          description: Service running and database available
+        '500':
+          description: Internal server error
+        '503':
+          description: Service temporarily unavailable, used in maintenance mode
 components:
   schemas:
     StatisticsComputerResponseObject:
@@ -368,6 +368,7 @@ components:
         clients:
           type: string
           description: a HyperLogLog serialized object
+
   securitySchemes:
     bearerAuth:
       type: http

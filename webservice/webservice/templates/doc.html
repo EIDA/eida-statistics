@@ -52,28 +52,38 @@
 
   <body>
     <h1>Statistics Webservice</h1>
-    <p>This service queries a database that hosts statistics for requests made to EIDA nodes about collecting seismological data.
-      The available methods and the format of statistics that exist in the database and returned by this service are discribed below.</p>
+    <p>This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/nodes/">EIDA</a> federation.
+      <br>
+      This documentation lists all the methods and details the usage possibilities available over HTTP protocol.</p>
 
     <h2>Methods</h2>
     <table id="methods">
       <tr>
         <th>Command</th>
+        <th>HTTP verb</th>
         <th>Description</th>
+        <th>Return formats</th>
       </tr>
       <tr>
-        <td><a href={{ url_dataselect }}>/dataselectstats</a></td>
-        <td>Returns statistics to be probably used by a computer</td>
+        <td><a href="http://localhost:5000/dataselect/stats/builder">/dataselect/stats</a></td>
+        <td>GET</td>
+        <td>Returns statistics on data distribution. Ouput structure is ment to be more convenient for programs.</td>
+        <td>JSON, CSV</td>
       </tr>
       <tr>
-        <td><a href={{ url_query }}>/query</a></td>
-        <td>Returns statistics in more human readable format with the possibility to be aggregated as the user asks</td>
+        <td><a href="http://localhost:5000/dataselectstats">/dataselectstats</a></td>
+        <td>POST</td>
+        <td>Submit new dataselect statistics to the database. Restricted to EIDA node managers.</td>
+      </tr>
+      <tr>
+        <td><a href="http://localhost:5000/dataselect/query/builder">/dataselect/query</a></td>
+        <td>GET</td>
+        <td>Returns statistics on data distribution. Output structure is more human readable, with the possibilities to be aggregated on all parameters</td>
       </tr>
     </table>
 
-    <h2>What it returns</h2>
-    <p>The service returns an object including some metadata, that contain the version of the webservice and some information about the query made,
-      and a list of statistic objects, either in JSON or CSV format, that contain the following fields which exist in the database.</p>
+    <h2>Returned Data</h2>
+    <p>The service returns an object including some metadata describing the version of the webservice and some information about the query made, and a list of statistic objects, either in JSON or CSV format, that contain the following fields which exist in the database.</p>
     <table id="fields">
       <tr>
         <th>Field</th>
