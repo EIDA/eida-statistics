@@ -1,7 +1,6 @@
 name: Create and publish a Docker image
 
 on:
-  workflow_dispatch:
   push:
     branches: ['development']
 
@@ -38,6 +37,6 @@ jobs:
         with:
           context: webservice
           push: true
-          tags: ${{ env.GITHUB_SHA }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.GITHUB_SHA }}
           labels: ${{ steps.meta.outputs.labels }}
           file: webservice/Dockerfile
