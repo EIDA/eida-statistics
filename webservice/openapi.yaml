@@ -8,7 +8,7 @@ info:
   version: 1.0.0
 externalDocs:
   description: Webservice github page
-  url: https://github.com/eida/eida-statistics/webservice
+  url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 servers:
   - url: https://ws.resif.fr/eidaws/statistics/1
 paths:
@@ -21,18 +21,20 @@ paths:
       parameters:
         - in: query
           name: start
-          description: Start month for time window; ISO-8601 e.g. 2022-10
+          description: |
+            Start month for time window; ISO-8601
           schema:
             type: string
             format: year-month
-            default: 2022.01
+            default: 2022-01
         - in: query
           name: end
-          description: End month for time window; ISO-8601 e.g. 2022-11
+          description: |
+            End month for time window; ISO-8601
           schema:
             type: string
             format: year-month
-            default: 2022.06
+            default: 2022-06
         - in: query
           name: datacenter
           description: |
@@ -46,31 +48,35 @@ paths:
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Coma separated list is possible.
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
           schema:
             type: string
             default: Z32015,FR
         - in: query
           name: station
-          description: Station code
+          description: |
+            FDSN extended station code. Comma separated list is possible.
           schema:
             type: string
             default: CIEL
         - in: query
           name: country
-          description: Country code
+          description: |
+            Country code. Comma separated list is possible.
           schema:
             type: string
             default: FR
         - in: query
           name: location
-          description: Location code
+          description: |
+            FDSN extended location code. Comma separated list is possible.
           schema:
             type: string
             default: 00
         - in: query
           name: channel
-          description: Channel code
+          description: |
+            FDSN extended channel code. Comma separated list is possible.
           schema:
             type: string
             default: HNZ
@@ -110,60 +116,82 @@ paths:
       parameters:
         - in: query
           name: start
-          description: Start month for date window; ISO-8601 e.g. 2022-10
+          description: |
+            Start month for time window; ISO-8601
           schema:
             type: string
             format: year-month
+            default: 2022-01
         - in: query
           name: end
-          description: End month for date window; ISO-8601 e.g. 2022-11
+          description: |
+            End month for time window; ISO-8601
           schema:
             type: string
             format: year-month
+            default: 2022-06
         - in: query
           name: datacenter
-          description: Data center code
+          description: |
+            One or several data centers member of EIDA federation (see full list).
           schema:
-            type: string
+            type: array
+            items:
+              $ref: '#/components/schemas/NodesResponseObject'
+            default: RESIF
+          explode: false
         - in: query
           name: network
-          description: Network code
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
           schema:
             type: string
+            default: Z32015,FR
         - in: query
           name: station
-          description: Station code
+          description: |
+            FDSN extended station code. Comma separated list is possible.
           schema:
             type: string
-        - in: query
-          name: location
-          description: Location code
-          schema:
-            type: string
-            default: '*'
-        - in: query
-          name: channel
-          description: Channel code
-          schema:
-            type: string
-            default: '*'
+            default: CIEL
         - in: query
           name: country
-          description: Country code
+          description: |
+            Country code. Comma separated list is possible.
           schema:
             type: string
+            default: FR
+        - in: query
+          name: location
+          description: |
+            FDSN extended location code. Comma separated list is possible.
+          schema:
+            type: string
+            default: 00
+        - in: query
+          name: channel
+          description: |
+            FDSN extended channel code. Comma separated list is possible.
+          schema:
+            type: string
+            default: HNZ
         - in: query
           name: aggregate_on
-          description: Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,datacenter,network,station,country,location,channel.
+          description: |
+            Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,datacenter,network,station,country,location,channel.
           schema:
             type: string
             default: location,channel
         - in: query
           name: format
-          description: Format of the returned results; text or json
+          description: |
+            Output format. Specify 'csv' or 'json'
           schema:
             type: string
-            default: text
+            enum:
+              - json
+              - csv
+            default: csv
       responses:
         '200':
           description: Successful request, results follow
@@ -263,10 +291,13 @@ components:
     NodesResponseObject:
       description: |
         List of EIDA datacenters.
-      type: array
-      items:
-        type: string
-      example: '[RESIF,NOA,GFZ]'
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            type: string
+          example: [RESIF,NOA,GFZ]
     StatisticsComputerResponseObject:
       type: object
       properties:
