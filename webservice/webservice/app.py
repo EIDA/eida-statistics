@@ -14,10 +14,14 @@ from sqlalchemy.sql import func, text
 from sqlalchemy.sql.expression import literal_column
 import json
 from flask import Flask, request, render_template
+from flask_swagger_ui import get_swaggerui_blueprint
 
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
+
+swaggerui_blueprint = get_swaggerui_blueprint('/openapi', '/static/openapi.yaml')
+app.register_blueprint(swaggerui_blueprint)
 
 # define database URI to connect to database
 app.config['DBURI'] = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
@@ -46,7 +50,8 @@ def dataselectstats_builder():
     """
 
     return render_template('dataselectstats.html',
-        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats')
+        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats',
+        url_nodes='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/_nodes')
 
 
 @app.route('/dataselect/query/builder')
@@ -56,10 +61,11 @@ def query_builder():
     """
 
     return render_template('query.html',
-        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query')
+        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query',
+        url_nodes='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/_nodes')
 
 
-@app.route('/health')
+@app.route('/_health')
 def test_database():
     """
     Returns a 200 OK message if the webservice is running and database is available
@@ -72,6 +78,22 @@ def test_database():
                 response = curs.fetchall()
                 return "The service is up and running and database is available!", 200
 
+    except:
+        return "Database connection error", 500
+
+
+@app.route('/_nodes')
+def get_nodes():
+    """
+    Returns a list with the available datacenters
+    """
+
+    try:
+        with psycopg2.connect(app.config['DBURI']) as conn:
+            with conn.cursor() as curs:
+                curs.execute("select name from nodes")
+                response = curs.fetchall()
+                return json.dumps({"nodes": [n for node in response for n in node]}), {'Content-Type': 'application/json'}
     except:
         return "Database connection error", 500
 

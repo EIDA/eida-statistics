@@ -267,8 +267,13 @@
 
     <script>
       // script for autocomplete datacenters parameterODC
-      var datacenters = ['ODC', 'KOERI', 'UIB-NORSAR', 'NIEP', 'LMU', 'GEOFON', 'INGV', 'ICGC', 'ETH', 'BGR', 'NOA', 'AFAD', 'RESIF'];
-      var input = document.getElementById("datacenter");
+      let datacenters;
+      fetch('{{ url_nodes }}')
+        .then(response => response.json())
+        .then(data => {
+          datacenters = data.nodes;
+        })
+      let input = document.getElementById("datacenter");
 
       input.addEventListener("keyup", autocomplete);
 
