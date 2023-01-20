@@ -8,6 +8,7 @@ flask = "*"
 psycopg2 = "*"
 mmh3 = "*"
 sqlalchemy = "*"
+flask-swagger-ui = "*"
 
 [dev-packages]
 pytest = "*"
