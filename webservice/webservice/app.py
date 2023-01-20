@@ -126,8 +126,8 @@ def check_request_parameters(request):
             # dates stored in database as every first day of a month
             param_value_dict[key] = params.get(key) + '-01'
         elif key == 'format':
-            # format acceptable values: text or json
-            if params.get(key) not in ['text', 'json']:
+            # format acceptable values: csv or json
+            if params.get(key) not in ['csv', 'json']:
                 raise ValueError(f"'{key}'")
             else:
                 param_value_dict[key] = params.get(key)
@@ -160,9 +160,9 @@ def check_request_parameters(request):
     # default parameters to be aggregated in query method: location, channel
     if 'query' in request.url and 'aggregate_on' not in param_value_dict:
         param_value_dict['aggregate_on'] = ['location', 'channel']
-    # default output format: text
+    # default output format: csv
     if 'query' in request.url and 'format' not in param_value_dict:
-        param_value_dict['format'] = 'text'
+        param_value_dict['format'] = 'csv'
 
     return param_value_dict
 
@@ -387,7 +387,7 @@ def query():
             rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
             results.append(rowToDict)
 
-    # return json or text with metadata
+    # return json or csv with metadata
     if param_value_dict['format'] == 'json':
         return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
                         'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str), {'Content-Type': 'application/json'}
