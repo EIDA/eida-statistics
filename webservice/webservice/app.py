@@ -30,7 +30,7 @@ app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:50
 app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
 swaggerui_blueprint = get_swaggerui_blueprint('/', '/static/openapi.yaml')
-app.register_blueprint(swaggerui_blueprint,  url_prefix=app.config['EIDASTATS_API_PATH'])
+app.register_blueprint(swaggerui_blueprint)
 
 @app.route('/dataselect/old_doc')
 def documentation():
