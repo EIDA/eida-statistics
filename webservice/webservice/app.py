@@ -29,7 +29,7 @@ Session = sessionmaker(engine)
 app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
 app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
-swaggerui_blueprint = get_swaggerui_blueprint(app.config['EIDASTATS_API_PATH']+'/', '/static/openapi.yaml')
+swaggerui_blueprint = get_swaggerui_blueprint('/', '/static/openapi.yaml')
 app.register_blueprint(swaggerui_blueprint,  url_prefix=app.config['EIDASTATS_API_PATH'])
 
 @app.route('/dataselect/old_doc')
