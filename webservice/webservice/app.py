@@ -29,8 +29,11 @@ Session = sessionmaker(engine)
 app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
 app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
-swaggerui_blueprint = get_swaggerui_blueprint('/api/docs', '/static/openapi.yaml')
+# documentation page
+swaggerui_blueprint = get_swaggerui_blueprint('', '/static/openapi.yaml',
+    config={'app_name': "Statistics Webservice Documentation", 'layout': "BaseLayout"})
 app.register_blueprint(swaggerui_blueprint)
+
 
 @app.route('/dataselect/old_doc')
 def documentation():
