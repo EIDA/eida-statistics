@@ -25,6 +25,8 @@ Webservice frontend :
 Here are the list of permissions required in order for the webservice to run with the role `wseidastats`
 
 ``` sql
+create role wseidastats with password 'xxxxxxxx';
+grant connect on database eidastats to wseidastats;
 grant SELECT,UPDATE on SEQUENCE payloads_id_seq TO wseidastats ;
 grant SELECT on nodes to wseidastats ;
 grant SELECT,INSERT,UPDATE on dataselect_stats to wseidastats ;
@@ -40,4 +42,4 @@ You need a valid token to post some data.
 
 ## Getting statistics
 
-WIP
+The interface is fully documented in [openapi](openapi.yaml).
