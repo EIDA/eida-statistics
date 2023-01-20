@@ -20,9 +20,6 @@ from flask_swagger_ui import get_swaggerui_blueprint
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-swaggerui_blueprint = get_swaggerui_blueprint('/openapi', '/static/openapi.yaml')
-app.register_blueprint(swaggerui_blueprint)
-
 # define database URI to connect to database
 app.config['DBURI'] = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
 engine = create_engine(app.config['DBURI'])
@@ -32,7 +29,10 @@ Session = sessionmaker(engine)
 app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
 app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
-@app.route('/')
+swaggerui_blueprint = get_swaggerui_blueprint(app.config['EIDASTATS_API_PATH']+'/', '/static/openapi.yaml')
+app.register_blueprint(swaggerui_blueprint)
+
+@app.route('/dataselect/old_doc')
 def documentation():
     """
     Shows the documentation page of the statistics webservice
