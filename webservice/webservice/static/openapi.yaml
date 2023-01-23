@@ -1,67 +1,90 @@
 openapi: 3.0.1
 info:
   title: EIDA statistics service
-  description: "This is the description of EIDA's statistics service, used to submit statistics files and to get statistics"
-  contact:
-    email: info@orfeus.eu
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: |
+    This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/nodes/">EIDA</a> federation.<br>
+    This documentation lists all the methods and details the usage possibilities available over HTTP protocol.
+
   version: 1.0.0
 externalDocs:
-  description: EIDA github page
-  url: https://github.com/eida/
+  description: Webservice github page
+  url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 servers:
-- url: https://www.orfeus-eu.org/data/eida/webservices
+  url: ./
 paths:
-  /statistics/1/dataselect_stats:
+  /dataselect/stats:
     get:
       tags:
         - Statistics
-      description: returns statistics to be probably processed by computer
+      description: |
+        Get statistics meant to be convenient for programs.
       parameters:
         - in: query
           name: start
-          description: Start month for date window; ISO-8601 e.g. 2022-10
+          description: |
+            Start month for time window; ISO-8601
           schema:
             type: string
             format: year-month
+            example: 2022-01
+            default: '*'
         - in: query
           name: end
-          description: End month for date window; ISO-8601 e.g. 2022-11
+          description: |
+            End month for time window; ISO-8601
           schema:
             type: string
             format: year-month
+            example: 2022-06
+            default: '*'
         - in: query
-          name: data_center
-          description: Data center code
+          name: datacenter
+          description: |
+            Data center member of EIDA federation. Comma separated list is possible.
           schema:
             type: string
+            example: RESIF,NOA
+            default: '*'
         - in: query
           name: network
-          description: Network code
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
           schema:
             type: string
+            example: Z32015,FR
+            default: '*'
         - in: query
           name: station
-          description: Station code
+          description: |
+            FDSN extended station code. Comma separated list is possible.
           schema:
             type: string
+            example: CIEL
+            default: '*'
         - in: query
           name: country
-          description: Country code
+          description: |
+            Country code. Comma separated list is possible.
           schema:
             type: string
+            example: FR
+            default: '*'
         - in: query
           name: location
-          description: Location code
+          description: |
+            FDSN extended location code. Comma separated list is possible.
           schema:
             type: string
+            example: '00'
+            default: '*'
         - in: query
           name: channel
-          description: Channel code
+          description: |
+            FDSN extended channel code. Comma separated list is possible.
           schema:
             type: string
+            example: HNZ
+            default: '*'
       responses:
         '200':
           description: Successful request, results follow
@@ -80,7 +103,7 @@ paths:
           description: Internal server error
         '503':
           description: Service temporarily unavailable, used in maintenance mode
-  /statistics/1/query:
+  /dataselect/query:
     get:
       tags:
         - Statistics
@@ -88,60 +111,87 @@ paths:
       parameters:
         - in: query
           name: start
-          description: Start month for date window; ISO-8601 e.g. 2022-10
+          description: |
+            Start month for time window; ISO-8601
           schema:
             type: string
             format: year-month
-        - in: query
-          name: end
-          description: End month for date window; ISO-8601 e.g. 2022-11
-          schema:
-            type: string
-            format: year-month
-        - in: query
-          name: data_center
-          description: Data center code
-          schema:
-            type: string
-        - in: query
-          name: network
-          description: Network code
-          schema:
-            type: string
-        - in: query
-          name: station
-          description: Station code
-          schema:
-            type: string
-        - in: query
-          name: location
-          description: Location code
-          schema:
-            type: string
+            example: 2022-01
             default: '*'
         - in: query
-          name: channel
-          description: Channel code
+          name: end
+          description: |
+            End month for time window; ISO-8601
           schema:
             type: string
+            format: year-month
+            example: 2022-06
+            default: '*'
+        - in: query
+          name: datacenter
+          description: |
+            Data center member of EIDA federation. Comma separated list is possible.
+          schema:
+            type: string
+            example: RESIF,NOA
+            default: '*'
+        - in: query
+          name: network
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
+          schema:
+            type: string
+            example: Z32015,FR
+            default: '*'
+        - in: query
+          name: station
+          description: |
+            FDSN extended station code. Comma separated list is possible.
+          schema:
+            type: string
+            example: CIEL
             default: '*'
         - in: query
           name: country
-          description: Country code
+          description: |
+            Country code. Comma separated list is possible.
           schema:
             type: string
+            example: FR
+            default: '*'
+        - in: query
+          name: location
+          description: |
+            FDSN extended location code. Comma separated list is possible.
+          schema:
+            type: string
+            example: '00'
+            default: '*'
+        - in: query
+          name: channel
+          description: |
+            FDSN extended channel code. Comma separated list is possible.
+          schema:
+            type: string
+            example: HNZ
+            default: '*'
         - in: query
           name: aggregate_on
-          description: Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,data_center,network,station,country,location,channel.
+          description: |
+            Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,datacenter,network,station,country,location,channel.
           schema:
             type: string
             default: location,channel
         - in: query
           name: format
-          description: Format of the returned results; text or json
+          description: |
+            Output format. Specify 'csv' or 'json'
           schema:
             type: string
-            default: text
+            enum:
+              - json
+              - csv
+            default: csv
       responses:
         '200':
           description: Successful request, results follow
@@ -149,7 +199,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&data_center=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,data_center,network,station,location,channel,country,num_requests,num_successful_requests,bytes,num_cients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -163,12 +213,13 @@ paths:
         '500':
           description: Internal server error
         '503':
-          description: Service temporarily unavailable, used in maintenance mode            
-  /statistics/1/ingest:
+          description: Service temporarily unavailable, used in maintenance mode
+  /dataselect:
     put:
       tags:
-        - statistic
-      summary: append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
+        - Statistics
+      summary: |
+        Append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
       operationId: updateStat
       requestBody:
         description: An aggregation file as created by the aggregator, JSON gzipped.
@@ -189,7 +240,7 @@ paths:
       x-codegen-request-body-name: body
     post:
       tags:
-      - statistic
+      - Statistics
       summary: Submit a new statistic aggregation
       operationId: addStat
       requestBody:
@@ -209,6 +260,38 @@ paths:
       - bearerAuth:
         - write:eidanode
       x-codegen-request-body-name: body
+  /_health:
+    get:
+      tags:
+        - Internal
+      description: Returns OK message if service available and correctly connected to the database backend.
+      responses:
+        '200':
+          description: Service running and database available.
+        '500':
+          description: Internal server error.
+        '503':
+          description: Service temporarily unavailable, used in maintenance mode.
+  /_nodes:
+    get:
+      tags:
+        - Internal
+      description: |
+        Get list of nodes. Meant for internal use.
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: string
+                    example: [RESIF,NOA,GEOFON]
+
 components:
   schemas:
     StatisticsComputerResponseObject:
@@ -219,7 +302,7 @@ components:
           example: 1.0.0
         request_parameters:
           type: string
-          example: 'start=2021-01&end=2021-12&data_center=RESIF&network=NL&sta=STA*&country=GR,FR'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&sta=STA*&country=GR,FR'
         results:
           type: array
           items:
@@ -231,7 +314,7 @@ components:
           type: string
           format: year-month
           example: 2022-11
-        data_center:
+        datacenter:
           type: string
           example: RESIF
         network:
@@ -249,16 +332,16 @@ components:
         country:
           type: string
           example: GR
-        num_requests:
-          type: integer
-          example: 56
-        num_successful_requests:
-          type: integer
-          example: 40
         bytes:
           type: integer
           example: 561234
-        num_clients:
+        nb_reqs:
+          type: integer
+          example: 56
+        nb_successful_reqs:
+          type: integer
+          example: 40
+        clients:
           type: string
           example: \x128b7fffffffff8ef137c60000000002832c9b
           description: HyperLogLog hash object
@@ -270,7 +353,7 @@ components:
           example: 1.0.0
         matching:
           type: string
-          example: 'start=2021-01&end=2021-12&data_center=RESIF&network=NL&station=STA*&country=GR,FR'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR'
         aggregated_on:
           type: string
           example: 'month,country,location,channel'
@@ -285,7 +368,7 @@ components:
           type: string
           format: year-month
           example: '*'
-        data_center:
+        datacenter:
           type: string
           example: RESIF
         network:
@@ -303,16 +386,16 @@ components:
         country:
           type: string
           example: '*'
-        num_requests:
-          type: integer
-          example: 56
-        num_successful_requests:
-          type: integer
-          example: 40
         bytes:
           type: integer
           example: 561234
-        num_clients:
+        nb_reqs:
+          type: integer
+          example: 56
+        nb_successful_reqs:
+          type: integer
+          example: 40
+        clients:
           type: integer
           example: 34
           description: This is an evaluation of the internal representation in the database
@@ -359,6 +442,7 @@ components:
         clients:
           type: string
           description: a HyperLogLog serialized object
+
   securitySchemes:
     bearerAuth:
       type: http

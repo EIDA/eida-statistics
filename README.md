@@ -25,3 +25,38 @@ Starting the webserver and the database:
 
 
 
+# Déployment
+
+## Database
+
+A working postgresql instance is needed, with the hll extension installed. This extension is usually available in the PGDG repository (see for [yum](https://yum.postgresql.org/) or [APT](https://wiki.postgresql.org/wiki/Apt)).
+Otherwise, look at the installation instructions of the [postgres-hll project](https://github.com/citusdata/postgresql-hll)
+
+Create a new database and enable the HLL extension :
+
+``` sql
+CREATE ROLE fedstats WITH LOGIN PASSWOD 'xxxxxxxxx';
+CREATE DATABASE fedstats OWNER fedstats;
+\c fedstats
+CREATE EXTENTION hll;
+```
+
+
+Now you need to deploy the database schema. For this, read the [instructions](backend_database/README.md).
+
+## Database management tool
+
+`eida_statsman` from this project will help you manage the nodes and the tokens for statistics ingestion.
+
+To install it, look at it's [documentation](eida_statsman/README.md)
+
+## Webservice deployment
+
+The recommended way of deploying the webservice is to use the docker image distributed in this project `ghcr.io/eida/eida-statistics:master`.
+
+To configure and run an instance of the webservice, see [it's documentation](webservice/README.md).
+
+## Aggregate and submit statistics
+
+Now, use the aggregator program to build statistics and send them to the webservice instance. Look at the [documentation](aggregator/README.md)
+

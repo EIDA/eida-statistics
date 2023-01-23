@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <style>
+      body {
+        margin: 25px 50px;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        text-align: center;
+        color: #004d99;
+      }
+      h2 {
+        margin-top: 30px;
+        margin-bottom: 20px;
+        color: #004d99;
+      }
+      table {
+        border-collapse: collapse;
+        width: 75%;
+        margin: 0 auto;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+      th {
+        background-color: #004d99;
+        color: white;
+      }
+      p {
+        text-align: justify
+        }
+      a {
+        color: #004d99;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      tfoot {
+        font-size: 0.8em;
+        color: #666;
+      }
+
+    </style>
+  </head>
+
+  <body>
+    <h1>Statistics Webservice</h1>
+
+    <p>This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/nodes/">EIDA</a> federation.
+    <br>
+     This documentation lists all the methods and details the usage possibilities available over HTTP protocol.</p>
+    <p>This service queries a database that hosts statistics for requests made to EIDA nodes about collecting seismological data.
+      The available methods and the format of statistics that exist in the database and returned by this service are discribed below.</p>
+
+    <h2>Methods</h2>
+    <table id="methods">
+      <tr>
+        <th>Command</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td><a href={{ url_dataselect }}>/dataselect/stats</a></td>
+        <td>Returns statistics to be probably used by a computer</td>
+      </tr>
+      <tr>
+        <td><a href={{ url_query }}>/dataselect/query</a></td>
+        <td>Returns statistics in more human readable format with the possibility to be aggregated as the user asks</td>
+      </tr>
+    </table>
+
+    <h2>What it returns</h2>
+    <p>The service returns an object including some metadata, that contain the version of the webservice and some information about the query made,
+      and a list of statistic objects, either in JSON or CSV format, that contain the following fields which exist in the database.</p>
+    <table id="fields">
+      <tr>
+        <th>Field</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td>Month</td>
+        <td>The month which the current statistic object regards</td>
+      </tr>
+      <tr>
+        <td>Datacenter</td>
+        <td>The EIDA node to which requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Network</td>
+        <td>The network for which the requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Station</td>
+        <td>The station for which the requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Location</td>
+        <td>The location of station for which the requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Channel</td>
+        <td>The channel of station for which the requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Country</td>
+        <td>The country from which the requests of the current statistic object were made</td>
+      </tr>
+      <tr>
+        <td>Bytes</td>
+        <td>The total bytes of the responses to requests of the current statistic object</td>
+      </tr>
+      <tr>
+        <td>Nb_reqs</td>
+        <td>The number of requests that the current statistic object regards</td>
+      </tr>
+      <tr>
+        <td>Nb_successful_reqs</td>
+        <td>The number of successful requests that the current statistic object regards</td>
+      </tr>
+      <tr>
+        <td>Clients</td>
+        <td>The number of unique IPs that made the requests of the current statistic object;
+          for dataselectstats method it is a hash object, while for query method it is an integer</td>
+      </tr>
+      <tfoot>
+        <tr><td colspan=2 align="justify"><b>Note:</b> In the query method, after aggregation of statistic objects, the above fields from <i>Month</i>
+          up to <i>Country</i> can return the value *, which means <i>every value in the database that matches the query criteria for this field</i>.
+          In this case, the remaining fields from <i>Bytes</i> to <i>Clients</i> return the total numbers of the aggregated objects.</td></tr>
+      </tfoot>
+    </table>
+  </body>
+
+</html>
