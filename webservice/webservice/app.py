@@ -516,6 +516,9 @@ def register_statistics(statistics, node_id, operation='POST'):
     values_list = []
     for item in statistics:
         app.logger.debug("item: %s", item)
+        # unify non-valid country codes as null value
+        if len(item['country']) != 2:
+            item['country'] = None;
         values_list.append( [
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
