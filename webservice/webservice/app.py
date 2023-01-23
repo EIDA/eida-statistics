@@ -14,7 +14,6 @@ from sqlalchemy.sql import func, text
 from sqlalchemy.sql.expression import literal_column
 import json
 from flask import Flask, request, render_template
-from flask_swagger_ui import get_swaggerui_blueprint
 
 
 app = Flask(__name__)
@@ -29,13 +28,8 @@ Session = sessionmaker(engine)
 app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
 app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
 
-# documentation page
-swaggerui_blueprint = get_swaggerui_blueprint('', '/static/openapi.yaml',
-    config={'app_name': "Statistics Webservice Documentation", 'layout': "BaseLayout"})
-app.register_blueprint(swaggerui_blueprint)
 
-
-@app.route('/dataselect/old_doc')
+@app.route('/')
 def documentation():
     """
     Shows the documentation page of the statistics webservice
