@@ -214,7 +214,7 @@ paths:
           description: Internal server error
         '503':
           description: Service temporarily unavailable, used in maintenance mode
-  /dataselect:
+  /submit:
     put:
       tags:
         - Statistics
