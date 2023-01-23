@@ -530,7 +530,7 @@ def register_statistics(statistics, node_id, operation='POST'):
         app.logger.error(err.pgerror)
 
 
-@app.route('/dataselect',methods=['POST', 'PUT'])
+@app.route('/submit',methods=['POST', 'PUT'])
 def add_stat():
     """
     Adding the posted statistic to the database
