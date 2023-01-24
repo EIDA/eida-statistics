@@ -180,10 +180,10 @@ def dataselectstats():
         return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return f"BAD REQUEST: unsupported value for parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
+        return "BAD REQUEST: specify at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
 
     app.logger.info('Checked parameters of request')
 
@@ -270,10 +270,10 @@ def query():
         return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return f"BAD REQUEST: unsupported value for parameter " + str(e), 400, {'Content-Type': 'text/plain'}
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
+        return "BAD REQUEST: specify at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
 
     app.logger.info('Checked parameters of request')
 
