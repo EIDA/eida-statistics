@@ -510,6 +510,9 @@ def register_statistics(statistics, node_id, operation='POST'):
     values_list = []
     for item in statistics:
         app.logger.debug("item: %s", item)
+        # unify non-valid country codes as null value
+        if len(item['country']) != 2:
+            item['country'] = None;
         values_list.append( [
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
@@ -530,6 +533,20 @@ def add_stat():
     Adding the posted statistic to the database
     """
     app.logger.info("Receiving statistics")
+
+    # Check authentication token
+    if request.headers.get('Authentication') is not None:
+        app.logger.debug("Headers: %s", request.headers.get('Authentication'))
+        try:
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
+        except ValueError:
+            return ("No valid token provided", 403)
+        except psycopg2.Error:
+            return ("Internal error", 500)
+    else:
+        return ("No token provided. Permission denied", 401)
+
+    # Analyse payload
     if request.is_json:
         app.logger.debug("Data is JSON")
         payload = request.get_json()
@@ -542,17 +559,6 @@ def add_stat():
             app.logger.error(err)
             return("Data can not be parsed as JSON format", 400)
 
-    app.logger.debug("Headers: %s", request.headers.get('Authentication'))
-
-    if request.headers.get('Authentication') is not None:
-        try:
-            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
-        except ValueError:
-            return ("No valid token provided", 403)
-        except psycopg2.Error:
-            return ("Internal error", 500)
-    else:
-        return ("No token provided. Permission denied", 401)
     if not check_payload(payload):
         return("Malformed payload", 400)
     try:
