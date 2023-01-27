@@ -9,5 +9,6 @@ def main(global_config, **settings):
     config.add_route('nodes', '/_nodes')
     config.add_route('dataselectstats', '/dataselect/stats')
     config.add_route('dataselectquery', '/dataselect/query')
+    config.add_route('submitstat', '/submit')
     config.scan('.views')
     return config.make_wsgi_app()

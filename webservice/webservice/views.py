@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 import json
 import re
+import mmh3
 from webservice.model import Node, DataselectStat
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
@@ -44,7 +45,7 @@ def test_database(request):
 
     except Exception as e:
         log.error(str(e))
-        return Response(text="Database connection error", status_code=500, content_type='text/plain')
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
 @view_config(route_name='nodes', request_method='GET')
@@ -64,7 +65,7 @@ def get_nodes(request):
 
     except Exception as e:
         log.error(str(e))
-        return Response(text="Database connection error", status_code=500, content_type='text/plain')
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
 def check_request_parameters(request):
@@ -213,7 +214,7 @@ def dataselectstats(request):
 
     except Exception as e:
         log.error(str(e))
-        return Response(text="Database connection error or invalid SQL statement passed to database", status_code=500, content_type='text/plain')
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
     # get results as dictionaries and add datacenter name
     results = []
@@ -344,7 +345,7 @@ def query(request):
 
     except Exception as e:
         log.error(str(e))
-        return Response(text="Database connection error or invalid SQL statement passed to database", status_code=500, content_type='text/plain')
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
@@ -378,3 +379,180 @@ def query(request):
             csvText = csvText[:-1]
 
         return Response(text=csvText, content_type='text/csv')
+
+
+def get_node_from_token(token, request):
+    """
+    Returns the node name for a given token.
+    Checks if the token is valid.
+    Raise ValueError if the token provided is not in the database
+    """
+    log.debug("Token: %s", token)
+    node = ""
+    node_id = 0
+    try:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
+            with conn.cursor() as curs:
+                curs.execute("SELECT nodes.name, nodes.id from nodes join tokens on nodes.id = tokens.node_id where tokens.value=%s and now() between tokens.valid_from and tokens.valid_until", (token,))
+                if curs.rowcount == 1:
+                    node, node_id = curs.fetchone()
+                else:
+                    raise ValueError("No valid token found")
+    except psycopg2.Error as err:
+        log.error("Postgresql error %s getting node from token", err.pgcode)
+        log.error(err.pgerror)
+        raise err
+    log.info("Token is mapped to node %s", node)
+    return node_id
+
+
+def check_payload(payload):
+    """
+    Checks the payload format before trying to insert
+    """
+    check_stats = True
+    check_metadata = 'generated_at' in payload.keys() and 'version' in payload.keys() and 'stats' in payload.keys() and 'days_coverage' in payload.keys()
+    if check_metadata:
+        for stat in payload['stats']:
+            if 'month' in stat.keys() and 'clients' in stat.keys() and 'network' in stat.keys():
+                continue
+            check_stats = False
+    return check_metadata and check_stats
+
+
+def register_payload(node_id, payload, request):
+    """
+    Register payload to database
+    """
+    coverage = sorted([ datetime.strptime(v, '%Y-%m-%d') for v in payload['days_coverage'] ])
+    log.debug(coverage)
+    try:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
+            with conn.cursor() as curs:
+                # Insert bulk
+                curs.execute("""
+                INSERT INTO payloads (node_id, hash, version, generated_at, coverage)  VALUES
+                (%s, %s, %s, %s, %s )
+                """,
+                             (node_id,
+                              mmh3.hash(str(payload['stats'])),
+                              payload['version'],
+                              payload['generated_at'],
+                              coverage))
+    except psycopg2.Error as err:
+        log.error("Postgresql error %s registering payload", err.pgcode)
+        log.error(err.pgerror)
+        if err.pgcode == '23505':
+            log.error("Duplicate payload")
+            raise ValueError
+        raise err
+
+
+def register_statistics(statistics, node_id, request, operation='POST'):
+    """
+    Connects to the database and insert or update statistics
+    params:
+    - statistics is a list of dictionaries of all statistics, mapping to the table dataselect_stats schema but without the node_id
+    - opetation is the method POST of PUT
+    """
+    if operation == 'POST':
+        sqlreq = """
+                INSERT INTO dataselect_stats
+                (
+                  node_id, date, network, station, location, channel, country,
+                  bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
+                )
+                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
+                bytes = EXCLUDED.bytes + dataselect_stats.bytes,
+                nb_reqs = EXCLUDED.nb_reqs + dataselect_stats.nb_reqs,
+                nb_successful_reqs = EXCLUDED.nb_successful_reqs + dataselect_stats.nb_successful_reqs,
+                nb_failed_reqs = EXCLUDED.nb_failed_reqs + dataselect_stats.nb_failed_reqs,
+                clients = EXCLUDED.clients || dataselect_stats.clients,
+                updated_at = now()
+                """
+    elif operation == 'PUT':
+        sqlreq = """
+                INSERT INTO dataselect_stats
+                (
+                  node_id, date, network, station, location, channel, country,
+                  bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
+                )
+                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
+                bytes = EXCLUDED.bytes,
+                nb_reqs = EXCLUDED.nb_reqs,
+                nb_successful_reqs = EXCLUDED.nb_successful_reqs,
+                nb_failed_reqs = EXCLUDED.nb_failed_reqs,
+                clients = EXCLUDED.clients,
+                created_at = now()
+                """
+    else:
+        log.error("Operation %s not supported (POST or PUT only)")
+        raise ValueError
+
+    # Add the nodeid to all elements of payload.
+    # Convert list of dictionary to list of list
+    values_list = []
+    for item in statistics:
+        log.debug("item: %s", item)
+        # unify non-valid country codes as null value
+        if len(item['country']) != 2:
+            item['country'] = None;
+        values_list.append( [
+            node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
+            item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
+        ])
+    try:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
+            with conn.cursor() as curs:
+                # Insert bulk
+                execute_values(curs, sqlreq, values_list)
+    except psycopg2.Error as err:
+        log.error("Postgresql error %s registering statistic", err.pgcode)
+        log.error(err.pgerror)
+
+
+@view_config(route_name='submitstat', request_method=['POST', 'PUT'])
+def add_stat(request):
+    """
+    Adding the posted statistic to the database
+    """
+    log.info("Receiving statistics")
+
+    # Check authentication token
+    if request.headers.get('Authentication') is not None:
+        log.debug("Headers: %s", request.headers.get('Authentication'))
+        try:
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1], request)
+        except ValueError:
+            return Response("<h1>403 Forbidden</h1><p>No valid token provided</p>", status_code=403)
+        except psycopg2.Error:
+            return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+    else:
+        return Response("<h1>401 Unauthorized</h1><p>No token provided. Permission denied</p>", status_code=401)
+
+    # Analyse payload
+    try:
+        payload = request.json
+        log.debug("Data is JSON")
+    except:
+        log.debug("Data is sent as other content type. Try to load as JSON")
+        try:
+            payload = json.loads(request.body)
+        except Exception as err:
+            log.error(request.body)
+            log.error(err)
+            return Response("<h1>400 Bad Request</h1><p>Data can not be parsed as JSON format</p>", status_code=400)
+
+    if not check_payload(payload):
+        return Response("<h1>400 Bad Request</h1><p>Malformed payload</p>", status_code=400)
+    try:
+        log.info("Registering statistics")
+        register_payload(node_id, payload, request)
+    except psycopg2.Error:
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+    except ValueError:
+        return Response("<h1>400 Bad Request</h1><p>This statistic already exists on the server. Refusing to merge</p>", status_code=400)
+
+    register_statistics(payload['stats'], node_id=node_id, request=request, operation=request.method)
+
+    return "OK"

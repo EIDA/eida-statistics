@@ -4,12 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-psycopg2 = "*"
 mmh3 = "*"
 sqlalchemy = "*"
 pyramid = "*"
 waitress = "*"
 psycopg2-binary = "*"
+pytest = "*"
+datetime = "*"
+webtest = "*"
+pytest-postgresql = "*"
+psycopg = "*"
 
 [dev-packages]
 pytest = "*"

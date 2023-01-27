@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import func
 
 Base = declarative_base()

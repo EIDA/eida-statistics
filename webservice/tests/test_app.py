@@ -1,32 +1,13 @@
 #!/usr/bin/env python3
 
 import pytest
+from webtest import TestApp
 from pytest_postgresql import factories
-import sys
-sys.path.append('../webservice')
-from app import app
-import model
+from webservice import main, views, model
 
 
 postgresql_my_proc = factories.postgresql_noproc(host="localhost", port="5432", password="password")
 postgres_with_schema = factories.postgresql('postgresql_my_proc', dbname="test", load=['./eidastats_schema.sql'])
-
-
-@pytest.fixture()
-def appl():
-    app.config['TESTING'] = True
-    yield app
-
-
-@pytest.fixture()
-def client(appl):
-    return app.test_client()
-
-
-@pytest.fixture()
-def runner(appl):
-    return app.test_cli_runner()
-
 
 def test_postgres(postgres_with_schema):
     """
@@ -34,55 +15,62 @@ def test_postgres(postgres_with_schema):
     """
 
     with postgres_with_schema.cursor() as cur:
-      cur.execute("select * from dataselect_stats")
-      cur.fetchall()
+        cur.execute("select * from dataselect_stats limit 100")
+        cur.fetchall()
 
 
-def test_wrong_parameter(client):
+@pytest.fixture
+def app():
+    appl = main({})
+    testapp = TestApp(appl)
+    return testapp
+
+
+def test_wrong_parameter(app):
     """
     Check request with invalid parameter given
     """
 
-    response = client.get('/dataselect/query?wrong=stg')
+    response = app.get('/dataselect/query?wrong=stg', status=400)
 
-    assert response.status_code == 400 and 'invalid parameter' in str(response.data)
+    assert 'Invalid parameter' in str(response.body)
 
 
-def test_wrong_parameter_value_date(client):
+def test_wrong_parameter_value_date(app):
     """
     Check request with invalid value of date parameter given
     """
 
-    response = client.get('/dataselect/query?start=stg')
+    response = app.get('/dataselect/query?start=stg', status=400)
 
-    assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
+    assert 'Unsupported value for parameter' in str(response.body)
 
 
-def test_wrong_parameter_value_aggregate(client):
+def test_wrong_parameter_value_aggregate(app):
     """
     Check request with invalid value of aggregate_on parameter given
     """
 
-    response = client.get('/dataselect/query?aggregate_on=stg')
+    response = app.get('/dataselect/query?aggregate_on=stg', status=400)
 
-    assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
+    assert 'Unsupported value for parameter' in str(response.body)
 
 
-def test_wrong_parameter_value_format(client):
+def test_wrong_parameter_value_format(app):
     """
     Check request with invalid value of format parameter given
     """
 
-    response = client.get('/dataselect/query?format=stg')
+    response = app.get('/dataselect/query?format=stg', status=400)
 
-    assert response.status_code == 400 and 'invalid value of parameter' in str(response.data)
+    assert 'Unsupported value for parameter' in str(response.body)
 
 
-def test_correct_request(client):
+def test_correct_request(app):
     """
     Check correct request
     """
 
-    response = client.get('/dataselect/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter')
+    response = app.get('/dataselect/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter', status=200)
 
-    assert response.status_code == 200
+    assert 'version' in str(response.body)
