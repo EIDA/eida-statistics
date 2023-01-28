@@ -2,6 +2,7 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.view import notfound_view_config
 import psycopg2
+from psycopg2.extras import execute_values
 from datetime import datetime
 import logging
 import json
@@ -107,8 +108,12 @@ def check_request_parameters(request):
             if key in ['network', 'station', 'location', 'channel']:
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
+            elif key == 'datacenter':
+                acceptable_nodes = get_nodes(request).json['nodes']
+                if any(x not in acceptable_nodes for x in param_value_dict['datacenter']):
+                    raise ValueError(key)
             # aggregate_on parameter special handling
-            if key == 'aggregate_on':
+            elif key == 'aggregate_on':
                 if 'all' in param_value_dict[key]:
                     param_value_dict[key] = ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
                 else:
@@ -156,7 +161,10 @@ def dataselectstats(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
 
     except LookupError:
-        return Response(f"<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+
+    except:
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.debug('Checked parameters of request')
 
@@ -250,7 +258,10 @@ def query(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
 
     except LookupError:
-        return Response(f"<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+
+    except:
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.debug('Checked parameters of request')
 
@@ -524,11 +535,11 @@ def add_stat(request):
         try:
             node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1], request)
         except ValueError:
-            return Response("<h1>403 Forbidden</h1><p>No valid token provided</p>", status_code=403)
+            return Response(text="No valid token provided", status_code=403, content_type='text/plain')
         except psycopg2.Error:
-            return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+            return Response(text="Internal error", status_code=500, content_type='text/plain')
     else:
-        return Response("<h1>401 Unauthorized</h1><p>No token provided. Permission denied</p>", status_code=401)
+        return Response(text="No token provided. Permission denied", status_code=401, content_type='text/plain')
 
     # Analyse payload
     try:
@@ -541,17 +552,17 @@ def add_stat(request):
         except Exception as err:
             log.error(request.body)
             log.error(err)
-            return Response("<h1>400 Bad Request</h1><p>Data can not be parsed as JSON format</p>", status_code=400)
+            return Response(text="Data can not be parsed as JSON format", status_code=400, content_type='text/plain')
 
     if not check_payload(payload):
-        return Response("<h1>400 Bad Request</h1><p>Malformed payload</p>", status_code=400)
+        return Response(text="Malformed payload", status_code=400, content_type='text/plain')
     try:
         log.info("Registering statistics")
         register_payload(node_id, payload, request)
     except psycopg2.Error:
-        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+        return Response(text="Internal error", status_code=500, content_type='text/plain')
     except ValueError:
-        return Response("<h1>400 Bad Request</h1><p>This statistic already exists on the server. Refusing to merge</p>", status_code=400)
+        return Response(text="This statistic already exists on the server. Refusing to merge", status_code=400, content_type='text/plain')
 
     register_statistics(payload['stats'], node_id=node_id, request=request, operation=request.method)
 
