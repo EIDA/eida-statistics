@@ -109,7 +109,10 @@ def check_request_parameters(request):
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
             elif key == 'datacenter':
-                acceptable_nodes = get_nodes(request).json['nodes']
+                try:
+                    acceptable_nodes = get_nodes(request).json['nodes']
+                except:
+                    raise Exception
                 if any(x not in acceptable_nodes for x in param_value_dict['datacenter']):
                     raise ValueError(key)
             # aggregate_on parameter special handling
