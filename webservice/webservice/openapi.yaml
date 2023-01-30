@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: EIDA statistics service
   description: |
-    This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/nodes/">EIDA</a> federation.<br>
+    This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/">EIDA</a> federation.<br>
     This documentation lists all the methods and details the usage possibilities available over HTTP protocol.
 
   version: 1.0.0
@@ -10,7 +10,7 @@ externalDocs:
   description: Webservice github page
   url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 servers:
-  url: ./
+  - url: /
 paths:
   /dataselect/stats:
     get:
@@ -22,19 +22,17 @@ paths:
         - in: query
           name: start
           description: |
-            Start month for time window; ISO-8601
+            Start month for time window; ISO-8601 YYYY-MM
           schema:
             type: string
-            format: year-month
             example: 2022-01
             default: '*'
         - in: query
           name: end
           description: |
-            End month for time window; ISO-8601
+            End month for time window; ISO-8601 YYYY-MM
           schema:
             type: string
-            format: year-month
             example: 2022-06
             default: '*'
         - in: query
@@ -93,16 +91,10 @@ paths:
               schema:
                 type: object
                 $ref: '#/components/schemas/StatisticsComputerResponseObject'
-        '204':
-          description: Request was properly formatted and submitted but no data matches the selection
         '400':
-          description: Bad request due to improper specification, unrecognised parameter, parameter value out of range, etc.
-        '413':
-          description: Request would result in too much data being returned or the request itself is too large
+          description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '500':
           description: Internal server error
-        '503':
-          description: Service temporarily unavailable, used in maintenance mode
   /dataselect/query:
     get:
       tags:
@@ -112,19 +104,17 @@ paths:
         - in: query
           name: start
           description: |
-            Start month for time window; ISO-8601
+            Start month for time window; ISO-8601 YYYY-MM
           schema:
             type: string
-            format: year-month
             example: 2022-01
             default: '*'
         - in: query
           name: end
           description: |
-            End month for time window; ISO-8601
+            End month for time window; ISO-8601 YYYY-MM
           schema:
             type: string
-            format: year-month
             example: 2022-06
             default: '*'
         - in: query
@@ -204,16 +194,10 @@ paths:
               schema:
                 type: object
                 $ref: '#/components/schemas/StatisticsHumanResponseObject'
-        '204':
-          description: Request was properly formatted and submitted but no data matches the selection
         '400':
-          description: Bad request due to improper specification, unrecognised parameter, parameter value out of range, etc.
-        '413':
-          description: Request would result in too much data being returned or the request itself is too large
+          description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '500':
           description: Internal server error
-        '503':
-          description: Service temporarily unavailable, used in maintenance mode
   /submit:
     put:
       tags:
@@ -231,9 +215,16 @@ paths:
                 $ref: '#/components/schemas/Stat'
         required: true
       responses:
-        405:
-          description: Invalid input
-          content: {}
+        '200':
+          description: Statistic successfully ingested to database
+        '400':
+          description: Bad request due to malformed JSON payload object
+        '401':
+          description: No token provided
+        '403':
+          description: No valid token provided
+        '500':
+          description: Internal server error
       security:
       - bearerAuth:
         - write:eidanode
@@ -253,9 +244,16 @@ paths:
                 $ref: '#/components/schemas/Stat'
         required: true
       responses:
-        405:
-          description: Invalid input
-          content: {}
+        '200':
+          description: Statistic successfully ingested to database
+        '400':
+          description: Bad request due to malformed JSON payload object
+        '401':
+          description: No token provided
+        '403':
+          description: No valid token provided
+        '500':
+          description: Internal server error
       security:
       - bearerAuth:
         - write:eidanode
@@ -267,11 +265,9 @@ paths:
       description: Returns OK message if service available and correctly connected to the database backend.
       responses:
         '200':
-          description: Service running and database available.
+          description: Service running and database available
         '500':
-          description: Internal server error.
-        '503':
-          description: Service temporarily unavailable, used in maintenance mode.
+          description: Internal server error
   /_nodes:
     get:
       tags:
@@ -291,6 +287,9 @@ paths:
                     items:
                       type: string
                     example: [RESIF,NOA,GEOFON]
+        '500':
+          description: Internal server error
+
 
 components:
   schemas:
@@ -312,7 +311,6 @@ components:
       properties:
         month:
           type: string
-          format: year-month
           example: 2022-11
         datacenter:
           type: string
@@ -324,7 +322,7 @@ components:
           type: string
           example: HGN
         location:
-          type: integer
+          type: string
           example: 00
         channel:
           type: string
@@ -366,7 +364,6 @@ components:
       properties:
         month:
           type: string
-          format: year-month
           example: '*'
         datacenter:
           type: string
@@ -430,7 +427,7 @@ components:
         bytes:
           type: integer
           format: int64
-        nbrequets:
+        nb_requests:
           type: integer
           format: int64
         nb_successful_requests:
@@ -447,6 +444,3 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-
-security:
-  - bearerAuth: []

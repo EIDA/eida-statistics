@@ -5,6 +5,7 @@ from setuptools import setup
 requires = [
     'pyramid',
     'waitress',
+    'pyramid-openapi3',
 ]
 
 # List of dependencies installed via `pip install -e ".[dev]"`

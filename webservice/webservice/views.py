@@ -29,7 +29,7 @@ def notfound_view(request):
     return Response("<h1>404 Not Found</h1>", status_code=404)
 
 
-@view_config(route_name='health', request_method='GET')
+@view_config(route_name='health', request_method='GET', openapi=True)
 def test_database(request):
     """
     Returns a 200 OK message if the webservice is running and database is available
@@ -49,7 +49,7 @@ def test_database(request):
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
-@view_config(route_name='nodes', request_method='GET')
+@view_config(route_name='nodes', request_method='GET', openapi=True)
 def get_nodes(request):
     """
     Returns a list with the available datacenters
@@ -76,7 +76,7 @@ def check_request_parameters(request):
     Raises error if not acceptable
     """
 
-    log.debug('Entering check_request_parameters')
+    log.info('Entering check_request_parameters')
 
     accepted = ['start', 'end', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
     # query method can take 2 more parameters
@@ -139,7 +139,7 @@ def check_request_parameters(request):
     return param_value_dict
 
 
-@view_config(route_name='dataselectstats', request_method='GET')
+@view_config(route_name='dataselectstats', request_method='GET', openapi=True)
 def dataselectstats(request):
     """
     Returns statistics to be used by computer
@@ -163,10 +163,11 @@ def dataselectstats(request):
     except LookupError:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
 
-    except:
+    except Exception as e:
+        log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
-    log.debug('Checked parameters of request')
+    log.info('Checked parameters of request')
 
     try:
         engine = create_engine(request.registry.settings['DBURI'])
@@ -236,7 +237,7 @@ def dataselectstats(request):
             default=str), content_type='application/json', charset='utf-8')
 
 
-@view_config(route_name='dataselectquery', request_method='GET')
+@view_config(route_name='dataselectquery', request_method='GET', openapi=True)
 def query(request):
     """
     Returns statistics to be read by human
@@ -260,10 +261,11 @@ def query(request):
     except LookupError:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
 
-    except:
+    except Exception as e:
+        log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
-    log.debug('Checked parameters of request')
+    log.info('Checked parameters of request')
 
     try:
         engine = create_engine(request.registry.settings['DBURI'])
@@ -527,6 +529,7 @@ def add_stat(request):
     """
     Adding the posted statistic to the database
     """
+    log.info(f"{request.method} {request.url}")
     log.info("Receiving statistics")
 
     # Check authentication token
@@ -566,4 +569,4 @@ def add_stat(request):
 
     register_statistics(payload['stats'], node_id=node_id, request=request, operation=request.method)
 
-    return "OK"
+    return Response(text="Statistic successfully ingested to database!", content_type='text/plain')
