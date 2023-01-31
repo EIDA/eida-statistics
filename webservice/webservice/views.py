@@ -50,12 +50,15 @@ def test_database(request):
 
 
 @view_config(route_name='nodes', request_method='GET', openapi=True)
-def get_nodes(request):
+def get_nodes(request, internalCall=False):
     """
     Returns a list with the available datacenters
     """
 
-    log.info(f"{request.method} {request.url}")
+    if internalCall:
+        log.info('Entering get_nodes')
+    else:
+        log.info(f"{request.method} {request.url}")
 
     try:
         with psycopg2.connect(request.registry.settings['DBURI']) as conn:
@@ -85,16 +88,21 @@ def check_request_parameters(request):
     param_value_dict = {}
     params = request.params
     for key in params:
+        log.debug('Parameter: '+key)
         if key not in accepted:
             raise KeyError(key)
         elif key in ['start', 'end']:
             # check date format, must be like 2021-05
-            try: date = datetime.strptime(params.get(key), "%Y-%m")
-            except: raise ValueError(key)
+            try:
+                log.debug('Date: '+params.get(key))
+                date = datetime.strptime(params.get(key), "%Y-%m")
+            except:
+                raise ValueError(key)
             # dates stored in database as every first day of a month
             param_value_dict[key] = params.get(key) + '-01'
         elif key == 'format':
             # format acceptable values: csv or json
+            log.debug('Format: '+params.get(key))
             if params.get(key) not in ['csv', 'json']:
                 raise ValueError(key)
             else:
@@ -102,32 +110,35 @@ def check_request_parameters(request):
         else:
             # distinguish values given at each parameter
             # example of params.getall(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
+            log.debug(params.getall(key))
             temp = [p.split(",") for p in params.getall(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
+            log.debug('Multivalue fixed: '+str(param_value_dict[key]))
             # wildcards handling
             if key in ['network', 'station', 'location', 'channel']:
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
+                log.debug('After wildcards: '+str(param_value_dict[key]))
             elif key == 'datacenter':
                 try:
-                    acceptable_nodes = get_nodes(request).json['nodes']
+                    acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']
                 except:
                     raise Exception
-                if any(x not in acceptable_nodes for x in param_value_dict['datacenter']):
+                log.info('Got available datacenters from database')
+                if any(x not in acceptable_nodes for x in param_value_dict[key]):
                     raise ValueError(key)
             # aggregate_on parameter special handling
             elif key == 'aggregate_on':
                 if 'all' in param_value_dict[key]:
                     param_value_dict[key] = ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
                 else:
-                    for aggregator in param_value_dict[key]:
-                        if aggregator not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']:
-                            raise ValueError(key)
+                    if any(x not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel'] for x in param_value_dict[key]):
+                        raise ValueError(key)
                 # default parameters to be aggregated in query method: location, channel
-                if 'location' not in param_value_dict['aggregate_on']:
-                    param_value_dict['aggregate_on'].append('location')
-                if 'channel' not in param_value_dict['aggregate_on']:
-                    param_value_dict['aggregate_on'].append('channel')
+                if 'location' not in param_value_dict[key]:
+                    param_value_dict[key].append('location')
+                if 'channel' not in param_value_dict[key]:
+                    param_value_dict[key].append('channel')
 
     # make some parameters mandatory
     if 'start' not in param_value_dict and 'end' not in param_value_dict:
@@ -139,6 +150,7 @@ def check_request_parameters(request):
     if 'query' in request.url and 'format' not in param_value_dict:
         param_value_dict['format'] = 'csv'
 
+    log.debug('Final parameters: '+str(param_value_dict))
     return param_value_dict
 
 
@@ -173,6 +185,7 @@ def dataselectstats(request):
     log.info('Checked parameters of request')
 
     try:
+        log.debug('Connecting to db, SELECT and FROM clause')
         engine = create_engine(request.registry.settings['DBURI'])
         Session = sessionmaker(engine)
 
@@ -181,7 +194,9 @@ def dataselectstats(request):
                             with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
                             DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
                             DataselectStat.bytes, DataselectStat.clients, Node.name)
+
         # where clause
+        log.debug('Making the WHERE clause')
         if 'start' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
@@ -229,6 +244,7 @@ def dataselectstats(request):
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
     # get results as dictionaries and add datacenter name
+    log.debug('Getting the results')
     results = []
     for row in sqlreq:
         rowToDict = DataselectStat.to_dict(row)
@@ -236,6 +252,7 @@ def dataselectstats(request):
         results.append(rowToDict)
 
     # return json with metadata
+    log.debug('Returning the results')
     return Response(text=json.dumps({'version': '1.0.0', 'request_parameters': request.query_string, 'results': results},
             default=str), content_type='application/json', charset='utf-8')
 
@@ -271,6 +288,7 @@ def query(request):
     log.info('Checked parameters of request')
 
     try:
+        log.debug('Connecting to db, SELECT and FROM clause')
         engine = create_engine(request.registry.settings['DBURI'])
         Session = sessionmaker(engine)
 
@@ -300,6 +318,7 @@ def query(request):
                     func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
 
         # where clause
+        log.debug('Making the WHERE clause')
         if 'start' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
@@ -343,6 +362,7 @@ def query(request):
 
         # aggregate on requested parameters
         # group_by is the opposite process of the desired aggregation
+        log.debug('Making the GROUP BY clause')
         if 'month' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.group_by(DataselectStat.date)
         if 'datacenter' not in param_value_dict['aggregate_on']:
@@ -365,6 +385,7 @@ def query(request):
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
+    log.debug('Getting the results')
     results = []
     for row in sqlreq:
 
@@ -381,10 +402,12 @@ def query(request):
 
     # return json or csv with metadata
     if param_value_dict['format'] == 'json':
+        log.debug('Returning the results as JSON')
         return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
                 'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),
                 content_type='application/json', charset='utf-8')
     else:
+        log.debug('Returning the results as CSV')
         csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string) +\
             "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
             "\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
@@ -393,7 +416,6 @@ def query(request):
             for field in res:
                 csvText += str(res[field]) + ','
             csvText = csvText[:-1]
-
         return Response(text=csvText, content_type='text/csv')
 
 
