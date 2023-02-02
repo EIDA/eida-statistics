@@ -1,0 +1,8 @@
+README.md
+setup.py
+webservice.egg-info/PKG-INFO
+webservice.egg-info/SOURCES.txt
+webservice.egg-info/dependency_links.txt
+webservice.egg-info/entry_points.txt
+webservice.egg-info/requires.txt
+webservice.egg-info/top_level.txt

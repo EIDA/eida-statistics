@@ -4,11 +4,17 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-psycopg2 = "*"
 mmh3 = "*"
 sqlalchemy = "*"
-flask-swagger-ui = "*"
+pyramid = "*"
+waitress = "*"
+psycopg2-binary = "*"
+pytest = "*"
+datetime = "*"
+webtest = "*"
+pytest-postgresql = "*"
+psycopg = "*"
+pyramid-openapi3 = "*"
 
 [dev-packages]
 pytest = "*"

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import func
 
 Base = declarative_base()
@@ -48,8 +47,8 @@ class DataselectStat(Base):
 
     def to_dict(self):
         return {'month': str(self.date)[:-3], 'datacenter': '', 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
-        'country': self.country, 'bytes': self.bytes, 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
+        'country': self.country, 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
 
     def to_dict_for_query(self):
         return {'month': '', 'datacenter': '', 'network': '', 'station': '', 'location': '', 'channel': '',
-        'country': '', 'bytes': self.bytes, 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': int(self.clients)}
+        'country': '', 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': int(self.clients)}

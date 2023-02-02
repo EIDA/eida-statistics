@@ -1,104 +1,75 @@
-#!/usr/bin/env python3
-
-from datetime import datetime
-import re
-from model import Node, DataselectStat
-import os
-import logging
+from pyramid.response import Response
+from pyramid.view import view_config
+from pyramid.view import notfound_view_config
 import psycopg2
 from psycopg2.extras import execute_values
+from datetime import datetime
+import logging
+import json
+import re
 import mmh3
+from webservice.model import Node, DataselectStat
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
 from sqlalchemy.sql.expression import literal_column
-import json
-from flask import Flask, request, render_template
-from flask_swagger_ui import get_swaggerui_blueprint
 
 
-app = Flask(__name__)
-logging.basicConfig(level=logging.DEBUG)
-
-# define database URI to connect to database
-app.config['DBURI'] = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
-engine = create_engine(app.config['DBURI'])
-Session = sessionmaker(engine)
-
-# define server URL
-app.config['EIDASTATS_API_HOST'] = os.getenv('EIDASTATS_API_HOST', 'localhost:5000')
-app.config['EIDASTATS_API_PATH'] = os.getenv('EIDASTATS_API_PATH', '')
-
-# documentation page
-swaggerui_blueprint = get_swaggerui_blueprint('', '/static/openapi.yaml',
-    config={'app_name': "Statistics Webservice Documentation", 'layout': "BaseLayout"})
-app.register_blueprint(swaggerui_blueprint)
+log = logging.getLogger(__name__)
 
 
-@app.route('/dataselect/old_doc')
-def documentation():
+@notfound_view_config(append_slash=True)
+def notfound_view(request):
     """
-    Shows the documentation page of the statistics webservice
+    Function invoked when user tries a non-existent route_name
     """
 
-    return render_template('doc.html',
-        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats/builder',
-        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query/builder')
+    log.info(f"{request.method} {request.url}")
+
+    return Response("<h1>404 Not Found</h1>", status_code=404)
 
 
-@app.route('/dataselect/stats/builder')
-def dataselectstats_builder():
-    """
-    Builder and documentation page for the dataselectstats method
-    """
-
-    return render_template('dataselectstats.html',
-        url_dataselect='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/stats',
-        url_nodes='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/_nodes')
-
-
-@app.route('/dataselect/query/builder')
-def query_builder():
-    """
-    Builder and documentation page for the query method
-    """
-
-    return render_template('query.html',
-        url_query='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/dataselect/query',
-        url_nodes='http://'+app.config['EIDASTATS_API_HOST']+app.config['EIDASTATS_API_PATH']+'/_nodes')
-
-
-@app.route('/_health')
-def test_database():
+@view_config(route_name='health', request_method='GET', openapi=True)
+def test_database(request):
     """
     Returns a 200 OK message if the webservice is running and database is available
     """
 
+    log.info(f"{request.method} {request.url}")
+
     try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
             with conn.cursor() as curs:
                 curs.execute("select * from dataselect_stats limit 3")
                 response = curs.fetchall()
-                return "The service is up and running and database is available!", 200
+                return Response(text="The service is up and running and database is available!", content_type='text/plain')
 
-    except:
-        return "Database connection error", 500
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
-@app.route('/_nodes')
-def get_nodes():
+@view_config(route_name='nodes', request_method='GET', openapi=True)
+def get_nodes(request, internalCall=False):
     """
     Returns a list with the available datacenters
     """
 
+    if internalCall:
+        log.info('Entering get_nodes')
+    else:
+        log.info(f"{request.method} {request.url}")
+
     try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
             with conn.cursor() as curs:
                 curs.execute("select name from nodes")
                 response = curs.fetchall()
-                return json.dumps({"nodes": [n for node in response for n in node]}), {'Content-Type': 'application/json'}
-    except:
-        return "Database connection error", 500
+                return Response(json={"nodes": [n for node in response for n in node]}, content_type='application/json')
+
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
 def check_request_parameters(request):
@@ -108,51 +79,66 @@ def check_request_parameters(request):
     Raises error if not acceptable
     """
 
-    app.logger.debug('Entering check_request_parameters')
+    log.info('Entering check_request_parameters')
 
     accepted = ['start', 'end', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
     # query method can take 2 more parameters
     if 'query' in request.url:
         accepted = accepted + ['aggregate_on', 'format']
     param_value_dict = {}
-    params = request.args
+    params = request.params
     for key in params:
+        log.debug('Parameter: '+key)
         if key not in accepted:
             raise KeyError(key)
         elif key in ['start', 'end']:
             # check date format, must be like 2021-05
-            try: date = datetime.strptime(params.get(key), "%Y-%m")
-            except: raise ValueError(f"'{key}'")
+            try:
+                log.debug('Date: '+params.get(key))
+                date = datetime.strptime(params.get(key), "%Y-%m")
+            except:
+                raise ValueError(key)
             # dates stored in database as every first day of a month
             param_value_dict[key] = params.get(key) + '-01'
         elif key == 'format':
             # format acceptable values: csv or json
+            log.debug('Format: '+params.get(key))
             if params.get(key) not in ['csv', 'json']:
-                raise ValueError(f"'{key}'")
+                raise ValueError(key)
             else:
                 param_value_dict[key] = params.get(key)
         else:
             # distinguish values given at each parameter
-            # example of params.getlist(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
-            temp = [p.split(",") for p in params.getlist(key)] # example of temp: [["GR", "FR"], "SP"]
+            # example of params.getall(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
+            log.debug(params.getall(key))
+            temp = [p.split(",") for p in params.getall(key)] # example of temp: [["GR", "FR"], "SP"]
             param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
+            log.debug('Multivalue fixed: '+str(param_value_dict[key]))
             # wildcards handling
             if key in ['network', 'station', 'location', 'channel']:
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
+                log.debug('After wildcards: '+str(param_value_dict[key]))
+            elif key == 'datacenter':
+                try:
+                    acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']
+                except:
+                    raise Exception
+                log.info('Got available datacenters from database')
+                if any(x not in acceptable_nodes for x in param_value_dict[key]):
+                    raise ValueError(key)
             # aggregate_on parameter special handling
-            if key == 'aggregate_on':
+            elif key == 'aggregate_on':
                 if 'all' in param_value_dict[key]:
                     param_value_dict[key] = ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
                 else:
-                    for aggregator in param_value_dict[key]:
-                        if aggregator not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']:
-                            raise ValueError(f"'{key}'")
+                    if any(x not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel'] for x in param_value_dict[key]):
+                        raise ValueError(key)
                 # default parameters to be aggregated in query method: location, channel
-                if 'location' not in param_value_dict['aggregate_on']:
-                    param_value_dict['aggregate_on'].append('location')
-                if 'channel' not in param_value_dict['aggregate_on']:
-                    param_value_dict['aggregate_on'].append('channel')
+                if 'location' not in param_value_dict[key]:
+                    param_value_dict[key].append('location')
+                if 'channel' not in param_value_dict[key]:
+                    param_value_dict[key].append('channel')
 
     # make some parameters mandatory
     if 'start' not in param_value_dict and 'end' not in param_value_dict:
@@ -164,17 +150,18 @@ def check_request_parameters(request):
     if 'query' in request.url and 'format' not in param_value_dict:
         param_value_dict['format'] = 'csv'
 
+    log.debug('Final parameters: '+str(param_value_dict))
     return param_value_dict
 
 
-@app.route('/dataselect/stats', methods=['GET'])
-def dataselectstats():
+@view_config(route_name='dataselectstats', request_method='GET', openapi=True)
+def dataselectstats(request):
     """
     Returns statistics to be used by computer
     Returns bad request if invalid request parameter given
     """
 
-    app.logger.debug('Entering dataselectstats')
+    log.info(f"{request.method} {request.url}")
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
@@ -183,23 +170,33 @@ def dataselectstats():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
 
-    app.logger.info('Checked parameters of request')
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+
+    log.info('Checked parameters of request')
 
     try:
+        log.debug('Connecting to db, SELECT and FROM clause')
+        engine = create_engine(request.registry.settings['DBURI'])
+        Session = sessionmaker(engine)
+
         session = Session()
         sqlreq = session.query(DataselectStat).join(Node).\
                             with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
                             DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
                             DataselectStat.bytes, DataselectStat.clients, Node.name)
+
         # where clause
+        log.debug('Making the WHERE clause')
         if 'start' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
@@ -242,10 +239,12 @@ def dataselectstats():
             sqlreq = sqlreq.filter(multiOR)
         session.close()
 
-    except:
-        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'text/plain'}
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
     # get results as dictionaries and add datacenter name
+    log.debug('Getting the results')
     results = []
     for row in sqlreq:
         rowToDict = DataselectStat.to_dict(row)
@@ -253,18 +252,19 @@ def dataselectstats():
         results.append(rowToDict)
 
     # return json with metadata
-    return json.dumps({'version': '1.0.0', 'request_parameters': request.query_string.decode(),
-                    'results': results}, default=str), {'Content-Type': 'application/json'}
+    log.debug('Returning the results')
+    return Response(text=json.dumps({'version': '1.0.0', 'request_parameters': request.query_string, 'results': results},
+            default=str), content_type='application/json', charset='utf-8')
 
 
-@app.route('/dataselect/query', methods=['GET'])
-def query():
+@view_config(route_name='dataselectquery', request_method='GET', openapi=True)
+def query(request):
     """
     Returns statistics to be read by human
     Returns bad request if invalid request parameter given
     """
 
-    app.logger.debug('Entering query')
+    log.info(f"{request.method} {request.url}")
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
@@ -273,17 +273,25 @@ def query():
         param_value_dict = check_request_parameters(request)
 
     except KeyError as e:
-        return f"BAD REQUEST: invalid parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
 
     except ValueError as e:
-        return f"BAD REQUEST: invalid value of parameter " + str(e), 400, {'Content-Type': 'text/plain'}
+        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
 
     except LookupError:
-        return "BAD REQUEST: define at least one of 'start' or 'end' parameters", 400, {'Content-Type': 'text/plain'}
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
 
-    app.logger.info('Checked parameters of request')
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+
+    log.info('Checked parameters of request')
 
     try:
+        log.debug('Connecting to db, SELECT and FROM clause')
+        engine = create_engine(request.registry.settings['DBURI'])
+        Session = sessionmaker(engine)
+
         session = Session()
         sqlreq = session.query(DataselectStat).join(Node).with_entities()
 
@@ -305,10 +313,12 @@ def query():
             sqlreq = sqlreq.add_columns(DataselectStat.channel)
 
         # fields to be summed up
-        sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),\
+        sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),
+                    func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),
                     func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
 
         # where clause
+        log.debug('Making the WHERE clause')
         if 'start' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
@@ -352,6 +362,7 @@ def query():
 
         # aggregate on requested parameters
         # group_by is the opposite process of the desired aggregation
+        log.debug('Making the GROUP BY clause')
         if 'month' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.group_by(DataselectStat.date)
         if 'datacenter' not in param_value_dict['aggregate_on']:
@@ -368,11 +379,13 @@ def query():
             sqlreq = sqlreq.group_by(DataselectStat.channel)
         session.close()
 
-    except:
-        return "Database connection error or invalid SQL statement passed to database", 500, {'Content-Type': 'application/json'}
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
     # get results as dictionaries
     # assign '*' at aggregated parameters
+    log.debug('Getting the results')
     results = []
     for row in sqlreq:
 
@@ -389,10 +402,13 @@ def query():
 
     # return json or csv with metadata
     if param_value_dict['format'] == 'json':
-        return json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string.decode()),
-                        'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str), {'Content-Type': 'application/json'}
+        log.debug('Returning the results as JSON')
+        return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
+                'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),
+                content_type='application/json', charset='utf-8')
     else:
-        csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string.decode()) +\
+        log.debug('Returning the results as CSV')
+        csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string) +\
             "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
             "\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
@@ -400,21 +416,20 @@ def query():
             for field in res:
                 csvText += str(res[field]) + ','
             csvText = csvText[:-1]
+        return Response(text=csvText, content_type='text/csv')
 
-        return csvText, {'Content-Type': 'text/csv'}
 
-
-def get_node_from_token(token):
+def get_node_from_token(token, request):
     """
     Returns the node name for a given token.
     Checks if the token is valid.
     Raise ValueError if the token provided is not in the database
     """
-    app.logger.debug("Token: %s", token)
+    log.debug("Token: %s", token)
     node = ""
     node_id = 0
     try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
             with conn.cursor() as curs:
                 curs.execute("SELECT nodes.name, nodes.id from nodes join tokens on nodes.id = tokens.node_id where tokens.value=%s and now() between tokens.valid_from and tokens.valid_until", (token,))
                 if curs.rowcount == 1:
@@ -422,11 +437,12 @@ def get_node_from_token(token):
                 else:
                     raise ValueError("No valid token found")
     except psycopg2.Error as err:
-        app.logger.error("Postgresql error %s getting node from token", err.pgcode)
-        app.logger.error(err.pgerror)
+        log.error("Postgresql error %s getting node from token", err.pgcode)
+        log.error(err.pgerror)
         raise err
-    app.logger.info("Token is mapped to node %s", node)
+    log.info("Token is mapped to node %s", node)
     return node_id
+
 
 def check_payload(payload):
     """
@@ -442,14 +458,14 @@ def check_payload(payload):
     return check_metadata and check_stats
 
 
-def register_payload(node_id, payload):
+def register_payload(node_id, payload, request):
     """
     Register payload to database
     """
     coverage = sorted([ datetime.strptime(v, '%Y-%m-%d') for v in payload['days_coverage'] ])
-    app.logger.debug(coverage)
+    log.debug(coverage)
     try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
             with conn.cursor() as curs:
                 # Insert bulk
                 curs.execute("""
@@ -462,15 +478,15 @@ def register_payload(node_id, payload):
                               payload['generated_at'],
                               coverage))
     except psycopg2.Error as err:
-        app.logger.error("Postgresql error %s registering payload", err.pgcode)
-        app.logger.error(err.pgerror)
+        log.error("Postgresql error %s registering payload", err.pgcode)
+        log.error(err.pgerror)
         if err.pgcode == '23505':
-            app.logger.error("Duplicate payload")
+            log.error("Duplicate payload")
             raise ValueError
         raise err
 
 
-def register_statistics(statistics, node_id, operation='POST'):
+def register_statistics(statistics, node_id, request, operation='POST'):
     """
     Connects to the database and insert or update statistics
     params:
@@ -508,67 +524,74 @@ def register_statistics(statistics, node_id, operation='POST'):
                 created_at = now()
                 """
     else:
-        app.logger.error("Operation %s not supported (POST or PUT only)")
+        log.error("Operation %s not supported (POST or PUT only)")
         raise ValueError
 
     # Add the nodeid to all elements of payload.
     # Convert list of dictionary to list of list
     values_list = []
     for item in statistics:
-        app.logger.debug("item: %s", item)
+        log.debug("item: %s", item)
+        # unify non-valid country codes as null value
+        if len(item['country']) != 2:
+            item['country'] = None;
         values_list.append( [
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
         ])
     try:
-        with psycopg2.connect(app.config['DBURI']) as conn:
+        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
             with conn.cursor() as curs:
                 # Insert bulk
                 execute_values(curs, sqlreq, values_list)
     except psycopg2.Error as err:
-        app.logger.error("Postgresql error %s registering statistic", err.pgcode)
-        app.logger.error(err.pgerror)
+        log.error("Postgresql error %s registering statistic", err.pgcode)
+        log.error(err.pgerror)
 
 
-@app.route('/dataselect',methods=['POST', 'PUT'])
-def add_stat():
+@view_config(route_name='submitstat', request_method=['POST', 'PUT'])
+def add_stat(request):
     """
     Adding the posted statistic to the database
     """
-    app.logger.info("Receiving statistics")
-    if request.is_json:
-        app.logger.debug("Data is JSON")
-        payload = request.get_json()
-    else:
-        app.logger.debug("Data is sent as other content type. Try to load as JSON")
-        try:
-            payload = json.loads(request.data)
-        except Exception as err:
-            app.logger.error(request.data)
-            app.logger.error(err)
-            return("Data can not be parsed as JSON format", 400)
+    log.info(f"{request.method} {request.url}")
+    log.info("Receiving statistics")
 
-    app.logger.debug("Headers: %s", request.headers.get('Authentication'))
-
+    # Check authentication token
     if request.headers.get('Authentication') is not None:
+        log.debug("Headers: %s", request.headers.get('Authentication'))
         try:
-            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1], request)
         except ValueError:
-            return ("No valid token provided", 403)
+            return Response(text="No valid token provided", status_code=403, content_type='text/plain')
         except psycopg2.Error:
-            return ("Internal error", 500)
+            return Response(text="Internal error", status_code=500, content_type='text/plain')
     else:
-        return ("No token provided. Permission denied", 401)
-    if not check_payload(payload):
-        return("Malformed payload", 400)
+        return Response(text="No token provided. Permission denied", status_code=401, content_type='text/plain')
+
+    # Analyse payload
     try:
-        app.logger.info("Registering statistics")
-        register_payload(node_id, payload)
+        payload = request.json
+        log.debug("Data is JSON")
+    except:
+        log.debug("Data is sent as other content type. Try to load as JSON")
+        try:
+            payload = json.loads(request.body)
+        except Exception as err:
+            log.error(request.body)
+            log.error(err)
+            return Response(text="Data can not be parsed as JSON format", status_code=400, content_type='text/plain')
+
+    if not check_payload(payload):
+        return Response(text="Malformed payload", status_code=400, content_type='text/plain')
+    try:
+        log.info("Registering statistics")
+        register_payload(node_id, payload, request)
     except psycopg2.Error:
-        return ("Internal error", 500)
+        return Response(text="Internal error", status_code=500, content_type='text/plain')
     except ValueError:
-        return ("This statistic already exists on the server. Refusing to merge", 400)
+        return Response(text="This statistic already exists on the server. Refusing to merge", status_code=400, content_type='text/plain')
 
-    register_statistics(payload['stats'], node_id=node_id, operation=request.method)
+    register_statistics(payload['stats'], node_id=node_id, request=request, operation=request.method)
 
-    return "OK"
+    return Response(text="Statistic successfully ingested to database!", content_type='text/plain')
