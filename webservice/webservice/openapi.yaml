@@ -10,7 +10,7 @@ externalDocs:
   description: Webservice github page
   url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 servers:
-  - url: /
+  - url: eidaws/statistics/1/
 paths:
   /dataselect/stats:
     get:
