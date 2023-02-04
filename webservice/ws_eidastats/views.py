@@ -413,7 +413,7 @@ def query(request):
         return Response(text=csvText, content_type='text/csv')
 
 
-def get_node_from_token(token, request):
+def get_node_from_token(token):
     """
     Returns the node name for a given token.
     Checks if the token is valid.
@@ -453,7 +453,7 @@ def check_payload(payload):
     return check_metadata and check_stats
 
 
-def register_payload(node_id, payload, request):
+def register_payload(node_id, payload):
     """
     Register payload to database
     """
@@ -551,7 +551,7 @@ def add_stat(request):
     if request.headers.get('Authentication') is not None:
         log.debug("Headers: %s", request.headers.get('Authentication'))
         try:
-            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1], request)
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
         except ValueError:
             return Response(text="No valid token provided", status_code=403, content_type='text/plain')
         except exc.DBAPIError:
@@ -576,7 +576,7 @@ def add_stat(request):
         return Response(text="Malformed payload", status_code=400, content_type='text/plain')
     try:
         log.info("Registering statistics")
-        register_payload(node_id, payload, request)
+        register_payload(node_id, payload)
     except exc.DBAPIError:
         return Response(text="Internal error", status_code=500, content_type='text/plain')
     except ValueError:
