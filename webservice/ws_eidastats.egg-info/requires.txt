@@ -1,0 +1,7 @@
+pyramid
+pyramid-openapi3
+waitress
+
+[dev]
+pytest
+webtest

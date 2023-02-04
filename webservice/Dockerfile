@@ -5,7 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 COPY development.ini .
 COPY setup.py .
-COPY webservice ./webservice
+COPY ws_eidastats ./ws_eidastats
 RUN pip install -r requirements.txt
 RUN pip install -e .
 RUN pip install -e ".[dev]"

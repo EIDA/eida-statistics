@@ -17,14 +17,14 @@ dev_requires = [
 ]
 
 setup(
-    name='webservice',
+    name='ws_eidastats',
     install_requires=requires,
     extras_require={
         'dev': dev_requires,
     },
     entry_points={
         'paste.app_factory': [
-            'main = webservice:main'
+            'main = ws_eidastats:main'
         ],
     },
 )

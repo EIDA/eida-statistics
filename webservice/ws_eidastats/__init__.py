@@ -1,10 +1,8 @@
 from pyramid.config import Configurator
 import os
 
-
 def main(global_config, **settings):
     config = Configurator(settings=settings)
-    config.add_settings({'DBURI': os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')})
     config.include("pyramid_openapi3")
     config.pyramid_openapi3_spec(os.path.join(os.path.dirname(__file__), "openapi.yaml"))
     config.pyramid_openapi3_add_explorer(route='/', template=os.path.join(os.path.dirname(__file__),"static/index.html"))

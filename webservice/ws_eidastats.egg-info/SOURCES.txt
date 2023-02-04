@@ -1,0 +1,8 @@
+README.md
+setup.py
+ws_eidastats.egg-info/PKG-INFO
+ws_eidastats.egg-info/SOURCES.txt
+ws_eidastats.egg-info/dependency_links.txt
+ws_eidastats.egg-info/entry_points.txt
+ws_eidastats.egg-info/requires.txt
+ws_eidastats.egg-info/top_level.txt
