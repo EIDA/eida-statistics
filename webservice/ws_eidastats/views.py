@@ -524,6 +524,12 @@ def register_statistics(statistics, node_id, operation='POST'):
         # unify non-valid country codes as null value
         if len(item['country']) != 2:
             item['country'] = None;
+        # if unsuccessful requests in Null, set it to 0
+        if item['nb_unsuccessful_requests'] is None:
+            item['nb_unsuccessful_requests'] = 0
+        # if successful requests is Null, set it to nb_requests+nb_unsuccessful_requests
+        if item['nb_requests'] is None:
+            item['nb_requests'] = item['nb_successful_requests'] + item['nb_unsuccessful_requests']
         values_list.append((
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
