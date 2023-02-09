@@ -3,7 +3,7 @@
 import pytest
 from webtest import TestApp
 from pytest_postgresql import factories
-from webservice import main, views, model
+from ws_eidastats import main, views, model
 
 
 postgresql_my_proc = factories.postgresql_noproc(host="localhost", port="5432", password="password")

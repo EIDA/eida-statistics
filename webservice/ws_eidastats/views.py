@@ -1,21 +1,23 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.view import notfound_view_config
-import psycopg2
-from psycopg2.extras import execute_values
 from datetime import datetime
+import os
 import logging
 import json
 import re
 import mmh3
-from webservice.model import Node, DataselectStat
-from sqlalchemy import create_engine, or_
+from ws_eidastats.model import Node, DataselectStat
+from sqlalchemy import create_engine, or_, exc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
 from sqlalchemy.sql.expression import literal_column
 
 
 log = logging.getLogger(__name__)
+dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
+engine = create_engine(dbURI)
+Session = sessionmaker(engine)
 
 
 @notfound_view_config(append_slash=True)
@@ -38,11 +40,10 @@ def test_database(request):
     log.info(f"{request.method} {request.url}")
 
     try:
-        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
-            with conn.cursor() as curs:
-                curs.execute("select * from dataselect_stats limit 3")
-                response = curs.fetchall()
-                return Response(text="The service is up and running and database is available!", content_type='text/plain')
+        session = Session()
+        sqlreq = session.query(DataselectStat).limit(3).all()
+        session.close()
+        return Response(text="The service is up and running and database is available!", content_type='text/plain')
 
     except Exception as e:
         log.error(str(e))
@@ -61,11 +62,10 @@ def get_nodes(request, internalCall=False):
         log.info(f"{request.method} {request.url}")
 
     try:
-        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
-            with conn.cursor() as curs:
-                curs.execute("select name from nodes")
-                response = curs.fetchall()
-                return Response(json={"nodes": [n for node in response for n in node]}, content_type='application/json')
+        session = Session()
+        sqlreq = session.query(Node).with_entities(Node.name).all()
+        session.close()
+        return Response(json={"nodes": [n for node in sqlreq for n in node]}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))
@@ -186,9 +186,6 @@ def dataselectstats(request):
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
-        engine = create_engine(request.registry.settings['DBURI'])
-        Session = sessionmaker(engine)
-
         session = Session()
         sqlreq = session.query(DataselectStat).join(Node).\
                             with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
@@ -289,9 +286,6 @@ def query(request):
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
-        engine = create_engine(request.registry.settings['DBURI'])
-        Session = sessionmaker(engine)
-
         session = Session()
         sqlreq = session.query(DataselectStat).join(Node).with_entities()
 
@@ -419,7 +413,7 @@ def query(request):
         return Response(text=csvText, content_type='text/csv')
 
 
-def get_node_from_token(token, request):
+def get_node_from_token(token):
     """
     Returns the node name for a given token.
     Checks if the token is valid.
@@ -429,16 +423,17 @@ def get_node_from_token(token, request):
     node = ""
     node_id = 0
     try:
-        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
-            with conn.cursor() as curs:
-                curs.execute("SELECT nodes.name, nodes.id from nodes join tokens on nodes.id = tokens.node_id where tokens.value=%s and now() between tokens.valid_from and tokens.valid_until", (token,))
-                if curs.rowcount == 1:
-                    node, node_id = curs.fetchone()
-                else:
-                    raise ValueError("No valid token found")
-    except psycopg2.Error as err:
-        log.error("Postgresql error %s getting node from token", err.pgcode)
-        log.error(err.pgerror)
+        session = Session()
+        sqlreq = session.execute(text("SELECT nodes.name, nodes.id from nodes join tokens on nodes.id = tokens.node_id where tokens.value=:tok and now() between tokens.valid_from and tokens.valid_until"), {'tok':token}).first()
+        if sqlreq:
+            node, node_id = sqlreq
+        else:
+            raise ValueError("No valid token found")
+        session.close()
+
+    except exc.DBAPIError as err:
+        log.error("Postgresql error %s getting node from token", err.orig.pgcode)
+        log.error(err.orig.pgerror)
         raise err
     log.info("Token is mapped to node %s", node)
     return node_id
@@ -458,35 +453,29 @@ def check_payload(payload):
     return check_metadata and check_stats
 
 
-def register_payload(node_id, payload, request):
+def register_payload(node_id, payload):
     """
     Register payload to database
     """
     coverage = sorted([ datetime.strptime(v, '%Y-%m-%d') for v in payload['days_coverage'] ])
     log.debug(coverage)
     try:
-        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
-            with conn.cursor() as curs:
-                # Insert bulk
-                curs.execute("""
-                INSERT INTO payloads (node_id, hash, version, generated_at, coverage)  VALUES
-                (%s, %s, %s, %s, %s )
-                """,
-                             (node_id,
-                              mmh3.hash(str(payload['stats'])),
-                              payload['version'],
-                              payload['generated_at'],
-                              coverage))
-    except psycopg2.Error as err:
-        log.error("Postgresql error %s registering payload", err.pgcode)
-        log.error(err.pgerror)
-        if err.pgcode == '23505':
+        session = Session()
+        # Insert bulk
+        session.execute(text("INSERT INTO payloads (node_id, hash, version, generated_at, coverage)  VALUES (:n, :h, :v, :g, :c)"),
+        {'n':node_id, 'h':mmh3.hash(str(payload['stats'])), 'v':payload['version'], 'g':payload['generated_at'], 'c':coverage})
+        session.commit()
+        session.close()
+    except exc.DBAPIError as err:
+        log.error("Postgresql error %s registering payload", err.orig.pgcode)
+        log.error(err.orig.pgerror)
+        if err.orig.pgcode == '23505':
             log.error("Duplicate payload")
             raise ValueError
         raise err
 
 
-def register_statistics(statistics, node_id, request, operation='POST'):
+def register_statistics(statistics, node_id, operation='POST'):
     """
     Connects to the database and insert or update statistics
     params:
@@ -494,35 +483,35 @@ def register_statistics(statistics, node_id, request, operation='POST'):
     - opetation is the method POST of PUT
     """
     if operation == 'POST':
-        sqlreq = """
+        sqlreq = text("""
                 INSERT INTO dataselect_stats
                 (
                   node_id, date, network, station, location, channel, country,
                   bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
                 )
-                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
+                VALUES :values_list ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
                 bytes = EXCLUDED.bytes + dataselect_stats.bytes,
                 nb_reqs = EXCLUDED.nb_reqs + dataselect_stats.nb_reqs,
                 nb_successful_reqs = EXCLUDED.nb_successful_reqs + dataselect_stats.nb_successful_reqs,
                 nb_failed_reqs = EXCLUDED.nb_failed_reqs + dataselect_stats.nb_failed_reqs,
                 clients = EXCLUDED.clients || dataselect_stats.clients,
                 updated_at = now()
-                """
+                """)
     elif operation == 'PUT':
-        sqlreq = """
+        sqlreq = text("""
                 INSERT INTO dataselect_stats
                 (
                   node_id, date, network, station, location, channel, country,
                   bytes, nb_reqs, nb_successful_reqs, nb_failed_reqs, clients
                 )
-                VALUES %s ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
+                VALUES :values_list ON CONFLICT ON CONSTRAINT uniq_stat DO UPDATE SET
                 bytes = EXCLUDED.bytes,
                 nb_reqs = EXCLUDED.nb_reqs,
                 nb_successful_reqs = EXCLUDED.nb_successful_reqs,
                 nb_failed_reqs = EXCLUDED.nb_failed_reqs,
                 clients = EXCLUDED.clients,
                 created_at = now()
-                """
+                """)
     else:
         log.error("Operation %s not supported (POST or PUT only)")
         raise ValueError
@@ -535,18 +524,25 @@ def register_statistics(statistics, node_id, request, operation='POST'):
         # unify non-valid country codes as null value
         if len(item['country']) != 2:
             item['country'] = None;
-        values_list.append( [
+        # if unsuccessful requests in Null, set it to 0
+        if item['nb_unsuccessful_requests'] is None:
+            item['nb_unsuccessful_requests'] = 0
+        # if successful requests is Null, set it to nb_requests+nb_unsuccessful_requests
+        if item['nb_requests'] is None:
+            item['nb_requests'] = item['nb_successful_requests'] + item['nb_unsuccessful_requests']
+        values_list.append((
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
-        ])
+        ))
     try:
-        with psycopg2.connect(request.registry.settings['DBURI']) as conn:
-            with conn.cursor() as curs:
-                # Insert bulk
-                execute_values(curs, sqlreq, values_list)
-    except psycopg2.Error as err:
-        log.error("Postgresql error %s registering statistic", err.pgcode)
-        log.error(err.pgerror)
+        session = Session()
+        # Insert bulk
+        session.execute(sqlreq, [{'values_list':vl} for vl in values_list])
+        session.commit()
+        session.close()
+    except exc.DBAPIError as err:
+        log.error("Postgresql error %s registering statistic", err.orig.pgcode)
+        log.error(err.orig.pgerror)
 
 
 @view_config(route_name='submitstat', request_method=['POST', 'PUT'])
@@ -561,10 +557,10 @@ def add_stat(request):
     if request.headers.get('Authentication') is not None:
         log.debug("Headers: %s", request.headers.get('Authentication'))
         try:
-            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1], request)
+            node_id = get_node_from_token(request.headers.get('Authentication').split(' ')[1])
         except ValueError:
             return Response(text="No valid token provided", status_code=403, content_type='text/plain')
-        except psycopg2.Error:
+        except exc.DBAPIError:
             return Response(text="Internal error", status_code=500, content_type='text/plain')
     else:
         return Response(text="No token provided. Permission denied", status_code=401, content_type='text/plain')
@@ -586,12 +582,12 @@ def add_stat(request):
         return Response(text="Malformed payload", status_code=400, content_type='text/plain')
     try:
         log.info("Registering statistics")
-        register_payload(node_id, payload, request)
-    except psycopg2.Error:
+        register_payload(node_id, payload)
+    except exc.DBAPIError:
         return Response(text="Internal error", status_code=500, content_type='text/plain')
     except ValueError:
         return Response(text="This statistic already exists on the server. Refusing to merge", status_code=400, content_type='text/plain')
 
-    register_statistics(payload['stats'], node_id=node_id, request=request, operation=request.method)
+    register_statistics(payload['stats'], node_id=node_id, operation=request.method)
 
     return Response(text="Statistic successfully ingested to database!", content_type='text/plain')

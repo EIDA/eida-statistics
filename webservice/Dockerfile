@@ -5,8 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 COPY development.ini .
 COPY setup.py .
-COPY webservice ./webservice
 RUN pip install -r requirements.txt
+COPY ws_eidastats ./ws_eidastats
 RUN pip install -e .
-RUN pip install -e ".[dev]"
+#RUN pip install -e ".[dev]"
 CMD ["/bin/bash", "-c", "gunicorn --bind 0.0.0.0:6543 --paste development.ini"]

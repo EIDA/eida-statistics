@@ -21,11 +21,9 @@ A command line interface to manage the central database system : listing nodes, 
 Starting the webserver and the database:
 
    docker-compose up
-   tests/load_database.sh
 
 
-
-# Déployment
+# Deployment
 
 ## Database
 
@@ -40,7 +38,6 @@ CREATE DATABASE fedstats OWNER fedstats;
 \c fedstats
 CREATE EXTENTION hll;
 ```
-
 
 Now you need to deploy the database schema. For this, read the [instructions](backend_database/README.md).
 
