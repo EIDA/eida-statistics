@@ -324,6 +324,7 @@ components:
         country:
           type: string
           example: GR
+          nullable: true
         bytes:
           type: integer
           example: 561234
@@ -377,6 +378,7 @@ components:
         country:
           type: string
           example: '*'
+          nullable: true
         bytes:
           type: integer
           example: 561234
@@ -418,6 +420,7 @@ components:
           type: string
         country:
           type: string
+          nullable: true
         bytes:
           type: integer
           format: int64

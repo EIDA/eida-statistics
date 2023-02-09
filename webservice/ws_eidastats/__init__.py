@@ -16,15 +16,13 @@ def prefix_openapi_spec(path, prefix=""):
 
 def main(global_config, **settings):
     # Setting the prefix in the openapi spec
-    prefix = os.getenv('EIDASTATS_API_PATH','/')
+    prefix = os.getenv('EIDASTATS_API_PATH','')
     openapi_doc = tempfile.NamedTemporaryFile(delete=False)
     prefixed_openapi_spec = prefix_openapi_spec(os.path.join(os.path.dirname(__file__), "openapi.yaml"), prefix)
     openapi_doc.write(prefixed_openapi_spec.encode("utf8"))
 
     config = Configurator(settings=settings)
     config.include("pyramid_openapi3")
-    # TODO try to provide a jinja template for openapi3 yaml spec
-    # in order to modigy servers[0].url
     config.pyramid_openapi3_spec(openapi_doc.name, route=os.path.join(prefix, 'openapi.yaml'))
     config.pyramid_openapi3_add_explorer(route=prefix+"/")
     config.registry.settings["pyramid_openapi3.enable_request_validation"] = False
