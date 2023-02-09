@@ -1,0 +1,70 @@
+# This docker compose spawns a reverse proxy in front of the webservice.
+# Usefull to test if everything works as expected with an arbitrary prefix.
+version: '3.8'
+services:
+    traefik:
+        image: traefik
+        ports:
+            - "80:80"
+        command:
+            - --providers.docker
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        networks:
+            - postgres-network
+        labels:
+            - "traefik.http.middlewares.eidastats.stripprefix.prefixes=/eidaws/statistics/1"
+            - "traefik.http.middlewares.eidastats.stripprefix.forceslash=false"
+    eidastats:
+        depends_on:
+            - database-migration
+        build:
+            context: webservice
+        networks:
+            - postgres-network
+        ports:
+            - "6543:6543"
+        environment:
+            - EIDASTATS_API_PATH=/eidaws/statistics/1
+            - DBURI=postgresql://eidastats:eidastats@database:5432/eidastats
+        labels:
+            - "traefik.http.routers.eidastats.rule=PathPrefix(`/eidaws/statistics/1`)"
+    database:
+        build:
+            context: backend_database
+            dockerfile: Dockerfile.pg-hll
+        image: posgtresql:14
+        networks:
+            - postgres-network
+        ports:
+            - 5432:5432
+        environment:
+            - POSTGRES_USER=eidastats
+            - POSTGRES_PASSWORD=eidastats
+            - POSTGRES_DB=eidastats
+        healthcheck:
+            test: ["CMD-SHELL", "sh -c 'pg_isready -U eidastats  -d eidastats'"]
+            interval: 10s
+            timeout: 3s
+            retries: 3
+        volumes:
+            - postgres_data:/var/lib/postgresql/data/
+    database-migration:
+        depends_on:
+            database:
+                condition: service_healthy
+
+        ports:
+            - 8888:8888
+        networks:
+            - postgres-network
+        build:
+            context: backend_database
+            dockerfile: Dockerfile.yoyo
+        entrypoint: "yoyo apply --database postgresql://eidastats:eidastats@database:5432/eidastats migrations"
+
+volumes:
+  postgres_data:
+networks:
+    postgres-network:
+        driver: bridge
