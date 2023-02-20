@@ -544,13 +544,15 @@ def register_statistics(statistics, node_id, operation='POST'):
         log.error("Postgresql error %s registering statistic", err.orig.pgcode)
         log.error(err.orig.pgerror)
 
-
-@view_config(route_name='submitstat', request_method=['POST', 'PUT'])
+@view_config(route_name='submitstat')
 def add_stat(request):
     """
     Adding the posted statistic to the database
     """
     log.info(f"{request.method} {request.url}")
+    if request.method == 'GET':
+        return Response(text="Only PUT or POST method allowed.", status_code=405, content_type='text/plain')
+
     log.info("Receiving statistics")
 
     # Check authentication token
