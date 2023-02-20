@@ -49,7 +49,7 @@ To install it, look at it's [documentation](eida_statsman/README.md)
 
 ## Webservice deployment
 
-The recommended way of deploying the webservice is to use the docker image distributed in this project `ghcr.io/eida/eida-statistics:master`.
+The recommended way of deploying the webservice is to use the docker image distributed in this project `ghcr.io/eida/eida-statistics:main`.
 
 To configure and run an instance of the webservice, see [it's documentation](webservice/README.md).
 
