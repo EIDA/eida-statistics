@@ -15,7 +15,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for programs.
+        Get statistics meant to be convenient for programs. Authentication required.
       parameters:
         - in: query
           name: start
@@ -89,13 +89,21 @@ paths:
                 $ref: '#/components/schemas/StatisticsComputerResponseObject'
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
+        '401':
+          description: Unauthorized. No token provided
+        '403':
+          description: Forbidden. No valid token provided for the required data
         '500':
           description: Internal server error
+      security:
+        - bearerRead:
+          - read:statistics
   /dataselect/query:
     get:
       tags:
         - Statistics
-      description: returns human readable statistics
+      description: |
+        Get statistics meant to be convenient for humans. Optional authentication. Non-authenticated users cannot see restricted data.
       parameters:
         - in: query
           name: start
@@ -190,8 +198,17 @@ paths:
                 $ref: '#/components/schemas/StatisticsHumanResponseObject'
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
+        '401':
+          description: Unauthorized. No token provided
+        '403':
+          description: Forbidden. No valid token provided for the required data
         '500':
           description: Internal server error
+      security:
+        - {}
+        - bearerRead:
+          - read:statistics
+
   /submit:
     put:
       tags:
@@ -439,5 +456,11 @@ components:
 
   securitySchemes:
     bearerAuth:
+      description: Token to be validated internally and allow statistics ingestion
+      type: http
+      scheme: bearer
+
+    bearerRead:
+      description: Token to be validated by B2ACCESS service and allow reading restricted statistics
       type: http
       scheme: bearer
