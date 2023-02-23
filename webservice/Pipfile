@@ -15,6 +15,7 @@ webtest = "*"
 pytest-postgresql = "*"
 psycopg = "*"
 pyramid-openapi3 = "*"
+requests = "*"
 
 [dev-packages]
 pytest = "*"

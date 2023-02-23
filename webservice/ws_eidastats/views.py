@@ -7,6 +7,7 @@ import logging
 import json
 import re
 import mmh3
+import requests
 from ws_eidastats.model import Node, DataselectStat
 from sqlalchemy import create_engine, or_, exc
 from sqlalchemy.orm import sessionmaker
@@ -154,6 +155,20 @@ def check_request_parameters(request):
     return param_value_dict
 
 
+def check_authentication(request):
+    """
+    Checks if user can be successfully authenticated
+    """
+
+    log.info('Entering check_authentication')
+
+    bearerToken = request.headers.get('Authorization')
+    authUrl = 'https://b2access.eudat.eu/oauth2/tokeninfo'
+    headers = {'Authorization': bearerToken}
+    response = requests.get(authUrl, headers=headers)
+    return response.status_code
+
+
 @view_config(route_name='dataselectstats', request_method='GET', openapi=True)
 def dataselectstats(request):
     """
@@ -168,21 +183,30 @@ def dataselectstats(request):
     # otherwise catch error and return bad request
     try:
         param_value_dict = check_request_parameters(request)
-
     except KeyError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
-
     except ValueError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
-
     except LookupError:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
-
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.info('Checked parameters of request')
+
+    # check authentication
+    authResponse = check_authentication(request)
+    if authResponse == 400:
+        return Response("<h1>401 Unauthorized</h1><p>No token provided</p>", status_code=401)
+    elif authResponse == 401:
+        return Response("<h1>401 Unauthorized</h1><p>Invalid token provided</p>", status_code=401)
+    elif authResponse == 200:
+        log.info('Successful authectication')
+    else:
+        return Response("<h1>401 Unauthorized</h1><p>B2ACCESS authentication failed</p>", status_code=401)
+
+    log.info('Checked authentication')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
@@ -268,21 +292,35 @@ def query(request):
     # otherwise catch error and return bad request
     try:
         param_value_dict = check_request_parameters(request)
-
     except KeyError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
-
     except ValueError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
-
     except LookupError:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
-
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.info('Checked parameters of request')
+
+    # if non-public statistics are requested, authentication needed
+    if not all(x in param_value_dict['aggregate_on'] for x in ['network', 'station', 'location', 'channel'])\
+    or any(x in ['network', 'station', 'location', 'channel'] for x in param_value_dict):
+        # check authentication
+        authResponse = check_authentication(request)
+        if authResponse == 400:
+            return Response("<h1>401 Unauthorized</h1><p>No token provided</p>", status_code=401)
+        elif authResponse == 401:
+            return Response("<h1>401 Unauthorized</h1><p>Invalid token provided</p>", status_code=401)
+        elif authResponse == 200:
+            log.info('Successful authectication')
+        else:
+            return Response("<h1>401 Unauthorized</h1><p>B2ACCESS authentication failed</p>", status_code=401)
+
+        log.info('Checked authentication')
+    else:
+        log.info('Public statistics requested, no need for authentication')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
