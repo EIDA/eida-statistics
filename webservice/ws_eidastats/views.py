@@ -8,6 +8,7 @@ import json
 import re
 import mmh3
 import requests
+import gnupg
 from ws_eidastats.model import Node, DataselectStat
 from sqlalchemy import create_engine, or_, exc
 from sqlalchemy.orm import sessionmaker
@@ -162,14 +163,32 @@ def check_authentication(request):
 
     log.info('Entering check_authentication')
 
-    bearerToken = request.headers.get('Authorization')
-    authUrl = 'https://b2access.eudat.eu/oauth2/tokeninfo'
-    headers = {'Authorization': bearerToken}
-    response = requests.get(authUrl, headers=headers)
-    return response.status_code
+    # verify signature
+    gpg = gnupg.GPG(gnupghome=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'gnupghome'))
+    verified = gpg.verify(request.body.decode())
+
+    if verified:
+        # extract and store token info in dictionary
+        token = re.search(r"{(?P<token>.*)}", str(request.body)).groupdict()["token"]
+        d = dict(
+            [i for i in kv.split(":", 1)]
+            for kv in token.replace('"', "").replace(" ", "").split(",")
+        )
+        if "givenName" not in d:
+            d["givenName"] = d.get("cn", "null")
+        log.debug('Token info: ' +str(d))
+
+        # check if token has expired
+        expiration_ts = datetime.strptime(d["valid_until"], "%Y-%m-%dT%H:%M:%S.%fZ")
+        if (expiration_ts - datetime.now()).total_seconds() < 0:
+            return {'Failed_message': 'Token has expired!'}
+        else:
+            return d
+    else:
+        return {'Failed_message': 'Invalid token or no token file provided'}
 
 
-@view_config(route_name='dataselectstats', request_method='GET', openapi=True)
+@view_config(route_name='dataselectstats', request_method='POST', openapi=True)
 def dataselectstats(request):
     """
     Returns statistics to be used by computer
@@ -196,15 +215,16 @@ def dataselectstats(request):
     log.info('Checked parameters of request')
 
     # check authentication
-    authResponse = check_authentication(request)
-    if authResponse == 400:
-        return Response("<h1>401 Unauthorized</h1><p>No token provided</p>", status_code=401)
-    elif authResponse == 401:
-        return Response("<h1>401 Unauthorized</h1><p>Invalid token provided</p>", status_code=401)
-    elif authResponse == 200:
-        log.info('Successful authectication')
+    # if authentication successful, returns dictionary with token info
+    # else returns dictionary with message
+    try:
+        tokenDict = check_authentication(request)
+    except Exception:
+        return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
+    if 'Failed_message' in tokenDict:
+        return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
     else:
-        return Response("<h1>401 Unauthorized</h1><p>B2ACCESS authentication failed</p>", status_code=401)
+        pass
 
     log.info('Checked authentication')
 
@@ -308,15 +328,16 @@ def query(request):
     if not all(x in param_value_dict['aggregate_on'] for x in ['network', 'station', 'location', 'channel'])\
     or any(x in ['network', 'station', 'location', 'channel'] for x in param_value_dict):
         # check authentication
-        authResponse = check_authentication(request)
-        if authResponse == 400:
-            return Response("<h1>401 Unauthorized</h1><p>No token provided</p>", status_code=401)
-        elif authResponse == 401:
-            return Response("<h1>401 Unauthorized</h1><p>Invalid token provided</p>", status_code=401)
-        elif authResponse == 200:
-            log.info('Successful authectication')
+        # if authentication successful, returns dictionary with token info
+        # else returns dictionary with message
+        try:
+            tokenDict = check_authentication(request)
+        except Exception:
+            return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
+        if 'Failed_message' in tokenDict:
+            return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
         else:
-            return Response("<h1>401 Unauthorized</h1><p>B2ACCESS authentication failed</p>", status_code=401)
+            pass
 
         log.info('Checked authentication')
     else:

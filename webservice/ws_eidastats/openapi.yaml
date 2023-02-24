@@ -11,7 +11,7 @@ externalDocs:
   url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 paths:
   /dataselect/stats:
-    get:
+    post:
       tags:
         - Statistics
       description: |
@@ -79,6 +79,13 @@ paths:
             type: string
             example: HHZ
             default: '*'
+      requestBody:
+        description: A file that contains the EIDA authentication system token
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful request, results follow
@@ -90,16 +97,13 @@ paths:
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':
-          description: Unauthorized. No token provided
+          description: Unauthorized. No valid token provided
         '403':
-          description: Forbidden. No valid token provided for the required data
+          description: Forbidden. User has no access to the requested data
         '500':
           description: Internal server error
-      security:
-        - bearerRead:
-          - read:statistics
   /dataselect/query:
-    get:
+    post:
       tags:
         - Statistics
       description: |
@@ -184,6 +188,13 @@ paths:
               - json
               - csv
             default: csv
+      requestBody:
+        description: A file that contains the EIDA authentication system token
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful request, results follow
@@ -199,16 +210,11 @@ paths:
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':
-          description: Unauthorized. No token provided
+          description: Unauthorized. No valid token provided
         '403':
-          description: Forbidden. No valid token provided for the required data
+          description: Forbidden. User has no access to the requested data
         '500':
           description: Internal server error
-      security:
-        - {}
-        - bearerRead:
-          - read:statistics
-
   /submit:
     put:
       tags:
@@ -457,10 +463,5 @@ components:
   securitySchemes:
     bearerAuth:
       description: Token to be validated internally and allow statistics ingestion
-      type: http
-      scheme: bearer
-
-    bearerRead:
-      description: Token to be validated by B2ACCESS service and allow reading restricted statistics
       type: http
       scheme: bearer
