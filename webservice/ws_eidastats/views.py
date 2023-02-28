@@ -159,6 +159,8 @@ def check_request_parameters(request):
 def check_authentication(request):
     """
     Checks if user can be successfully authenticated
+    Returns dictionary with token info if authentication is successful
+    Returns dictionary with message if authentication is unsuccessful
     """
 
     log.info('Entering check_authentication')
@@ -192,14 +194,15 @@ def check_authentication(request):
 def dataselectstats(request):
     """
     Returns statistics to be used by computer
-    Returns bad request if invalid request parameter given
+    Returns 400 bad request if invalid request parameter given
+    Returns 401 unauthorized if authentication is unsuccessful
     """
 
     log.info(f"{request.method} {request.url}")
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
-    # otherwise catch error and return bad request
+    # otherwise catch error and return 400 bad request
     try:
         param_value_dict = check_request_parameters(request)
     except KeyError as e:
@@ -215,8 +218,8 @@ def dataselectstats(request):
     log.info('Checked parameters of request')
 
     # check authentication
-    # if authentication successful, returns dictionary with token info
-    # else returns dictionary with message
+    # if authentication successful, return dictionary with token info
+    # else return 401 unauthorized
     try:
         tokenDict = check_authentication(request)
     except Exception:
@@ -302,14 +305,15 @@ def dataselectstats(request):
 def query(request):
     """
     Returns statistics to be read by human
-    Returns bad request if invalid request parameter given
+    Returns 400 bad request if invalid request parameter given
+    Returns 401 unauthorized if authentication is necessary but unsuccessful
     """
 
     log.info(f"{request.method} {request.url}")
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
-    # otherwise catch error and return bad request
+    # otherwise catch error and return 400 bad request
     try:
         param_value_dict = check_request_parameters(request)
     except KeyError as e:
@@ -329,7 +333,7 @@ def query(request):
     or any(x in ['network', 'station', 'location', 'channel'] for x in param_value_dict):
         # check authentication
         # if authentication successful, returns dictionary with token info
-        # else returns dictionary with message
+        # else return 401 unauthorized
         try:
             tokenDict = check_authentication(request)
         except Exception:
