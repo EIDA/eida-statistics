@@ -83,10 +83,18 @@ def check_request_parameters(request):
 
     log.info('Entering check_request_parameters')
 
-    accepted = ['start', 'end', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
-    # query method can take 2 more parameters
-    if 'query' in request.url:
-        accepted = accepted + ['aggregate_on', 'format']
+    # parameters that all methods accept
+    accepted = ['start', 'end', 'datacenter', 'country']
+    # parameters accepted by raw method
+    if 'raw' in request.url:
+        accepted += ['network', 'station', 'location', 'channel']
+    # parameters accepted by restricted method
+    if 'restricted' in request.url:
+        accepted += ['network', 'station', 'location', 'channel', 'aggregate_on', 'format']
+    # parameters accepted by public method
+    if 'public' in request.url:
+        accepted += ['aggregate_on', 'format']
+
     param_value_dict = {}
     params = request.params
     for key in params:
@@ -136,20 +144,29 @@ def check_request_parameters(request):
                 else:
                     if any(x not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel'] for x in param_value_dict[key]):
                         raise ValueError(key)
-                # default parameters to be aggregated in query method: location, channel
+                # default parameters to be aggregated in restricted and public methods: location, channel
                 if 'location' not in param_value_dict[key]:
                     param_value_dict[key].append('location')
                 if 'channel' not in param_value_dict[key]:
                     param_value_dict[key].append('channel')
+                # force network and station aggreagtion for public method
+                if 'public' in request.url:
+                    if 'network' not in param_value_dict[key]:
+                        param_value_dict[key].append('network')
+                    if 'station' not in param_value_dict[key]:
+                        param_value_dict[key].append('station')
 
     # make some parameters mandatory
     if 'start' not in param_value_dict and 'end' not in param_value_dict:
         raise LookupError
-    # default parameters to be aggregated in query method: location, channel
-    if 'query' in request.url and 'aggregate_on' not in param_value_dict:
+    # default parameters to be aggregated in restricted method: location, channel
+    if 'restricted' in request.url and 'aggregate_on' not in param_value_dict:
         param_value_dict['aggregate_on'] = ['location', 'channel']
+    # default parameters to be aggregated in public method: network, station, location, channel
+    if 'public' in request.url and 'aggregate_on' not in param_value_dict:
+        param_value_dict['aggregate_on'] = ['network', 'station', 'location', 'channel']
     # default output format: csv
-    if 'query' in request.url and 'format' not in param_value_dict:
+    if ('restricted' in request.url or 'public' in request.url) and 'format' not in param_value_dict:
         param_value_dict['format'] = 'csv'
 
     log.debug('Final parameters: '+str(param_value_dict))
@@ -190,8 +207,8 @@ def check_authentication(request):
         return {'Failed_message': 'Invalid token or no token file provided'}
 
 
-@view_config(route_name='dataselectstats', request_method='POST', openapi=True)
-def dataselectstats(request):
+@view_config(route_name='dataselectraw', request_method='POST', openapi=True)
+def raw(request):
     """
     Returns statistics to be used by computer
     Returns 400 bad request if invalid request parameter given
@@ -301,8 +318,8 @@ def dataselectstats(request):
             default=str), content_type='application/json', charset='utf-8')
 
 
-@view_config(route_name='dataselectquery', request_method='GET', openapi=True)
-def query(request):
+@view_config(route_name='dataselectrestricted', request_method='POST', openapi=True)
+def restricted(request):
     """
     Returns statistics to be read by human
     Returns 400 bad request if invalid request parameter given
@@ -455,6 +472,118 @@ def query(request):
             rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
             rowToDict['location'] = row.location if 'location' not in param_value_dict['aggregate_on'] else '*'
             rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
+            results.append(rowToDict)
+
+    # return json or csv with metadata
+    if param_value_dict['format'] == 'json':
+        log.debug('Returning the results as JSON')
+        return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
+                'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),
+                content_type='application/json', charset='utf-8')
+    else:
+        log.debug('Returning the results as CSV')
+        csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string) +\
+            "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
+            "\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+        for res in results:
+            csvText += '\n'
+            for field in res:
+                csvText += str(res[field]) + ','
+            csvText = csvText[:-1]
+        return Response(text=csvText, content_type='text/csv')
+
+
+@view_config(route_name='dataselectpublic', request_method='GET', openapi=True)
+def public(request):
+    """
+    Returns public statistics to be read by human
+    Returns 400 bad request if invalid request parameter given
+    """
+
+    log.info(f"{request.method} {request.url}")
+
+    # check parameters and values
+    # return dictionary with parameters and values if acceptable
+    # otherwise catch error and return 400 bad request
+    try:
+        param_value_dict = check_request_parameters(request)
+    except KeyError as e:
+        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
+    except ValueError as e:
+        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
+    except LookupError:
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+
+    log.info('Checked parameters of request')
+
+    try:
+        log.debug('Connecting to db, SELECT and FROM clause')
+        session = Session()
+        sqlreq = session.query(DataselectStat).join(Node).with_entities()
+
+        # if aggregate on a parameter don't select it
+        # instead return '*' for it meaning all matching instances of parameter
+        if 'month' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.date)
+        if 'datacenter' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(Node.name)
+        if 'country' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.country)
+
+        # fields to be summed up
+        sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),
+                    func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),
+                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
+
+        # where clause
+        log.debug('Making the WHERE clause')
+        if 'start' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
+        if 'end' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
+        if 'datacenter' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'country' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
+
+        # aggregate on requested parameters
+        # group_by is the opposite process of the desired aggregation
+        log.debug('Making the GROUP BY clause')
+        if 'month' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.date)
+        if 'datacenter' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(Node.name)
+        if 'country' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.country)
+        # force aggregation in network, station, location, channel parameters
+        sqlreq = sqlreq.group_by(DataselectStat.network)
+        sqlreq = sqlreq.group_by(DataselectStat.station)
+        sqlreq = sqlreq.group_by(DataselectStat.location)
+        sqlreq = sqlreq.group_by(DataselectStat.channel)
+        session.close()
+
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
+
+    # get results as dictionaries
+    # assign '*' at aggregated parameters
+    log.debug('Getting the results')
+    results = []
+    for row in sqlreq:
+
+        if row != (None, None, None, None):
+            rowToDict = DataselectStat.to_dict_for_query(row)
+            rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['network'] = '*'
+            rowToDict['station'] = '*'
+            rowToDict['location'] = '*'
+            rowToDict['channel'] = '*'
             results.append(rowToDict)
 
     # return json or csv with metadata
