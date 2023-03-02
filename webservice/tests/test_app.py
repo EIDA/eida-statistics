@@ -31,7 +31,7 @@ def test_wrong_parameter(app):
     Check request with invalid parameter given
     """
 
-    response = app.get('/dataselect/query?wrong=stg', status=400)
+    response = app.get('/dataselect/public?wrong=stg', status=400)
 
     assert 'Invalid parameter' in str(response.body)
 
@@ -41,7 +41,7 @@ def test_wrong_parameter_value_date(app):
     Check request with invalid value of date parameter given
     """
 
-    response = app.get('/dataselect/query?start=stg', status=400)
+    response = app.get('/dataselect/public?start=stg', status=400)
 
     assert 'Unsupported value for parameter' in str(response.body)
 
@@ -51,7 +51,7 @@ def test_wrong_parameter_value_aggregate(app):
     Check request with invalid value of aggregate_on parameter given
     """
 
-    response = app.get('/dataselect/query?aggregate_on=stg', status=400)
+    response = app.get('/dataselect/public?aggregate_on=stg', status=400)
 
     assert 'Unsupported value for parameter' in str(response.body)
 
@@ -61,16 +61,39 @@ def test_wrong_parameter_value_format(app):
     Check request with invalid value of format parameter given
     """
 
-    response = app.get('/dataselect/query?format=stg', status=400)
+    response = app.get('/dataselect/public?format=stg', status=400)
 
     assert 'Unsupported value for parameter' in str(response.body)
 
 
-def test_correct_request(app):
+def test_correct_public_request(app):
     """
-    Check correct request
+    Check correct public request
     """
 
-    response = app.get('/dataselect/query?start=2021-05&country=GR&network=HL&aggregate_on=month,station,network,datacenter', status=200)
+    response = app.get('/dataselect/public?start=2021-05&country=GR&aggregate_on=month,station,network,datacenter', status=200)
 
     assert 'version' in str(response.body)
+
+
+def test_invalid_token(app):
+    """
+    Check invalid token provided
+    """
+
+    with open('./invalid_token', 'rb') as file:
+        file_contents = file.read()
+    response = app.post('/dataselect/restricted?start=2021-05&country=GR&aggregate_on=month,station,network,datacenter', content_type='application/octet-stream',
+                params=file_contents, status=401)
+
+    assert 'Invalid token' in str(response.body)
+
+
+def test_no_token(app):
+    """
+    Check no token provided
+    """
+
+    response = app.post('/dataselect/raw?start=2021-05&country=GR', status=401)
+
+    assert 'no token' in str(response.body)

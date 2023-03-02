@@ -323,7 +323,7 @@ def restricted(request):
     """
     Returns statistics to be read by human
     Returns 400 bad request if invalid request parameter given
-    Returns 401 unauthorized if authentication is necessary but unsuccessful
+    Returns 401 unauthorized if authentication is unsuccessful
     """
 
     log.info(f"{request.method} {request.url}")
@@ -345,24 +345,19 @@ def restricted(request):
 
     log.info('Checked parameters of request')
 
-    # if non-public statistics are requested, authentication needed
-    if not all(x in param_value_dict['aggregate_on'] for x in ['network', 'station', 'location', 'channel'])\
-    or any(x in ['network', 'station', 'location', 'channel'] for x in param_value_dict):
-        # check authentication
-        # if authentication successful, returns dictionary with token info
-        # else return 401 unauthorized
-        try:
-            tokenDict = check_authentication(request)
-        except Exception:
-            return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
-        if 'Failed_message' in tokenDict:
-            return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
-        else:
-            pass
-
-        log.info('Checked authentication')
+    # check authentication
+    # if authentication successful, returns dictionary with token info
+    # else return 401 unauthorized
+    try:
+        tokenDict = check_authentication(request)
+    except Exception:
+        return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
+    if 'Failed_message' in tokenDict:
+        return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
     else:
-        log.info('Public statistics requested, no need for authentication')
+        pass
+
+    log.info('Checked authentication')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
