@@ -38,7 +38,6 @@ paths:
           schema:
             type: string
             example: RESIF,NOA
-            default: '*'
         - in: query
           name: network
           description: |
@@ -46,7 +45,6 @@ paths:
           schema:
             type: string
             example: Z32015,FR
-            default: '*'
         - in: query
           name: station
           description: |
@@ -54,7 +52,6 @@ paths:
           schema:
             type: string
             example: 'A*'
-            default: '*'
         - in: query
           name: location
           description: |
@@ -62,7 +59,6 @@ paths:
           schema:
             type: string
             example: '00'
-            default: '*'
         - in: query
           name: channel
           description: |
@@ -70,7 +66,6 @@ paths:
           schema:
             type: string
             example: HHZ
-            default: '*'
         - in: query
           name: country
           description: |
@@ -78,7 +73,6 @@ paths:
           schema:
             type: string
             example: FR,GR
-            default: '*'
       requestBody:
         description: A file that contains the EIDA authentication system token
         content:
@@ -130,7 +124,6 @@ paths:
           schema:
             type: string
             example: RESIF,NOA
-            default: '*'
         - in: query
           name: country
           description: |
@@ -138,7 +131,6 @@ paths:
           schema:
             type: string
             example: FR,GR
-            default: '*'
         - in: query
           name: aggregate_on
           description: |
@@ -200,7 +192,6 @@ paths:
           schema:
             type: string
             example: RESIF,NOA
-            default: '*'
         - in: query
           name: network
           description: |
@@ -208,15 +199,13 @@ paths:
           schema:
             type: string
             example: Z32015,FR
-            default: '*'
         - in: query
           name: station
           description: |
             FDSN extended station code. Comma separated list is possible.
           schema:
             type: string
-            example: '*'
-            default: '*'
+            example: 'A*'
         - in: query
           name: location
           description: |
@@ -224,7 +213,6 @@ paths:
           schema:
             type: string
             example: '00'
-            default: '*'
         - in: query
           name: channel
           description: |
@@ -232,7 +220,6 @@ paths:
           schema:
             type: string
             example: HHZ
-            default: '*'
         - in: query
           name: country
           description: |
@@ -240,7 +227,6 @@ paths:
           schema:
             type: string
             example: FR,GR
-            default: '*'
         - in: query
           name: aggregate_on
           description: |

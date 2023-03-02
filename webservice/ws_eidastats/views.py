@@ -559,10 +559,6 @@ def public(request):
         if 'country' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.group_by(DataselectStat.country)
         # force aggregation in network, station, location, channel parameters
-        sqlreq = sqlreq.group_by(DataselectStat.network)
-        sqlreq = sqlreq.group_by(DataselectStat.station)
-        sqlreq = sqlreq.group_by(DataselectStat.location)
-        sqlreq = sqlreq.group_by(DataselectStat.channel)
         session.close()
 
     except Exception as e:
