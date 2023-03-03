@@ -734,9 +734,10 @@ def add_stat(request):
     """
     log.info(f"{request.method} {request.url}")
     if request.method == 'GET':
+        log.info(f"Method {request.method} not allowed")
         return Response(text="Only PUT or POST method allowed.", status_code=405, content_type='text/plain')
 
-    log.info("Receiving statistics")
+    log.info("Verifying token")
 
     # Check authentication token
     if request.headers.get('Authentication') is not None:
@@ -750,6 +751,7 @@ def add_stat(request):
     else:
         return Response(text="No token provided. Permission denied", status_code=401, content_type='text/plain')
 
+    log.info("Token verified. Analysing payload")
     # Analyse payload
     try:
         payload = request.json
