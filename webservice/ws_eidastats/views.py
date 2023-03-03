@@ -717,6 +717,7 @@ def register_statistics(statistics, node_id, operation='POST'):
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
         ))
+    log.info(f"Registering {len(values_list)} statistics.")
     try:
         session = Session()
         # Insert bulk
@@ -726,6 +727,7 @@ def register_statistics(statistics, node_id, operation='POST'):
     except exc.DBAPIError as err:
         log.error("Postgresql error %s registering statistic", err.orig.pgcode)
         log.error(err.orig.pgerror)
+    log.info(f"Statistics successfully registered")
 
 @view_config(route_name='submitstat')
 def add_stat(request):
