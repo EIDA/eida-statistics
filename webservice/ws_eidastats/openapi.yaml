@@ -4,7 +4,6 @@ info:
   description: |
     This service provides unified usage statistics for services distributed in the <a href="https://www.orfeus-eu.org/data/eida/">EIDA</a> federation.<br>
     This documentation lists all the methods and details the usage possibilities available over HTTP protocol.
-
   version: 1.0.0
 externalDocs:
   description: Webservice github page
@@ -94,6 +93,8 @@ paths:
           description: Unauthorized. No valid token provided
         '403':
           description: Forbidden. User has no access to the requested data
+        '405':
+          description: Method not allowed
         '500':
           description: Internal server error
   /dataselect/public:
@@ -269,6 +270,8 @@ paths:
           description: Unauthorized. No valid token provided
         '403':
           description: Forbidden. User has no access to the requested data
+        '405':
+          description: Method not allowed
         '500':
           description: Internal server error
   /submit:
@@ -296,6 +299,8 @@ paths:
           description: No token provided
         '403':
           description: No valid token provided
+        '405':
+          description: Method not allowed
         '500':
           description: Internal server error
       security:
@@ -325,6 +330,75 @@ paths:
           description: No token provided
         '403':
           description: No valid token provided
+        '405':
+          description: Method not allowed
+        '500':
+          description: Internal server error
+      security:
+      - bearerAuth:
+        - write:eidanode
+      x-codegen-request-body-name: body
+  /restricted_networks:
+    get:
+      tags:
+        - Network restrictions
+      description: |
+        Returns list of restricted networks.
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      type: string
+                    example: [HL,FR,GE]
+        '500':
+          description: Internal server error
+  /add_restricted:
+    post:
+      tags:
+        - Network restrictions
+      description: |
+        Add a restricted network to database.
+      responses:
+        '200':
+          description: Network successfully added to database
+        '400':
+          description: Bad request due to malformed data provided or network already exists
+        '401':
+          description: No token provided
+        '403':
+          description: No valid token provided
+        '405':
+          description: Method not allowed
+        '500':
+          description: Internal server error
+      security:
+      - bearerAuth:
+        - write:eidanode
+      x-codegen-request-body-name: body
+  /delete_restricted:
+    post:
+      tags:
+        - Network restrictions
+      description: |
+        Delete a restricted network from database.
+      responses:
+        '200':
+          description: Network successfully deleted from database
+        '400':
+          description: Bad request due to malformed data provided or network not in database
+        '401':
+          description: No token provided
+        '403':
+          description: No valid token provided
+        '405':
+          description: Method not allowed
         '500':
           description: Internal server error
       security:
@@ -335,7 +409,8 @@ paths:
     get:
       tags:
         - Internal
-      description: Returns OK message if service available and correctly connected to the database backend.
+      description: |
+        Returns OK message if service available and correctly connected to the database backend.
       responses:
         '200':
           description: Service running and database available
@@ -362,8 +437,6 @@ paths:
                     example: [RESIF,NOA,GEOFON]
         '500':
           description: Internal server error
-
-
 components:
   schemas:
     StatisticsComputerResponseObject:
@@ -569,9 +642,8 @@ components:
         clients:
           type: string
           description: a HyperLogLog serialized object
-
   securitySchemes:
     bearerAuth:
-      description: Token to be validated internally and allow statistics ingestion
+      description: Token to be validated internally and allow statistics ingestion and restricted network modification
       type: http
       scheme: bearer

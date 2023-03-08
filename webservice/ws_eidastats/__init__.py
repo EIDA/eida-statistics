@@ -26,11 +26,15 @@ def main(global_config, **settings):
     config.pyramid_openapi3_spec(openapi_doc.name, route=os.path.join(prefix, 'openapi.yaml'))
     config.pyramid_openapi3_add_explorer(route=prefix+"/")
     config.registry.settings["pyramid_openapi3.enable_request_validation"] = False
+    config.registry.settings["pyramid_openapi3.enable_response_validation"] = False
     config.add_route('health', prefix+'/_health')
     config.add_route('nodes', prefix+'/_nodes')
     config.add_route('dataselectraw', prefix+'/dataselect/raw')
     config.add_route('dataselectrestricted', prefix+'/dataselect/restricted')
     config.add_route('dataselectpublic', prefix+'/dataselect/public')
     config.add_route('submitstat', prefix+'/submit')
+    config.add_route('restrictednets', prefix+'/restricted_networks')
+    config.add_route('addnets', prefix+'/add_restricted')
+    config.add_route('deletenets', prefix+'/delete_restricted')
     config.scan('.views')
     return config.make_wsgi_app()

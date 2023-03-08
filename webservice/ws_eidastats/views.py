@@ -9,7 +9,7 @@ import re
 import mmh3
 import requests
 import gnupg
-from ws_eidastats.model import Node, DataselectStat
+from ws_eidastats.model import Node, DataselectStat, RestrictedNetwork
 from sqlalchemy import create_engine, or_, exc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
@@ -207,7 +207,7 @@ def check_authentication(request):
         return {'Failed_message': 'Invalid token or no token file provided'}
 
 
-@view_config(route_name='dataselectraw', request_method='POST', openapi=True)
+@view_config(route_name='dataselectraw', openapi=True)
 def raw(request):
     """
     Returns statistics to be used by computer
@@ -216,6 +216,8 @@ def raw(request):
     """
 
     log.info(f"{request.method} {request.url}")
+    if request.method != 'POST':
+        return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
@@ -318,7 +320,7 @@ def raw(request):
             default=str), content_type='application/json', charset='utf-8')
 
 
-@view_config(route_name='dataselectrestricted', request_method='POST', openapi=True)
+@view_config(route_name='dataselectrestricted', openapi=True)
 def restricted(request):
     """
     Returns statistics to be read by human
@@ -327,6 +329,8 @@ def restricted(request):
     """
 
     log.info(f"{request.method} {request.url}")
+    if request.method != 'POST':
+        return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
 
     # check parameters and values
     # return dictionary with parameters and values if acceptable
@@ -780,3 +784,52 @@ def add_stat(request):
     register_statistics(payload['stats'], node_id=node_id, operation=request.method)
 
     return Response(text="Statistic successfully ingested to database!", content_type='text/plain')
+
+
+@view_config(route_name='restrictednets', request_method='GET')
+def restricted_networks(request):
+    """
+    Returns a list with the restricted networks
+    """
+
+    log.info(f"{request.method} {request.url}")
+
+    return Response("Not implemented yet!", status_code=200)
+
+    '''
+    try:
+        session = Session()
+        sqlreq = session.query(RestrictedNetwork).with_entities(RestrictedNetwork.name).all()
+        session.close()
+        return Response(json={"restricted_networks": [n for net in sqlreq for n in net]}, content_type='application/json')
+
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+    '''
+
+
+@view_config(route_name='addnets')
+def add_restricted(request):
+    """
+    Adds a restricted network to database
+    """
+
+    log.info(f"{request.method} {request.url}")
+    if request.method != 'POST':
+        return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
+
+    return Response("Not implemented yet!", status_code=200)
+
+
+@view_config(route_name='deletenets')
+def delete_restricted(request):
+    """
+    Deletes a restricted network from database
+    """
+
+    log.info(f"{request.method} {request.url}")
+    if request.method != 'POST':
+        return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
+
+    return Response("Not implemented yet!", status_code=200)
