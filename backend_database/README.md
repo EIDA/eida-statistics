@@ -14,8 +14,8 @@ Then run the container like this :
 
 Migrations are managed with `yoyo`
 
-  pip install yoyo-migration psycopg2
-  yoyo apply --database postgresql://user:password@host:port/database migrations
+    pip install yoyo-migration psycopg2
+    yoyo apply --database postgresql://user:password@host:port/database migrations
 
 ### table nodes
 
