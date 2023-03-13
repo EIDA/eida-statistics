@@ -9,7 +9,7 @@ import re
 import mmh3
 import requests
 import gnupg
-from ws_eidastats.model import Node, DataselectStat, RestrictedNetwork
+from ws_eidastats.model import Node, DataselectStat, Network
 from sqlalchemy import create_engine, or_, exc
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func, text
@@ -667,7 +667,7 @@ def register_statistics(statistics, node_id, operation='POST'):
     Connects to the database and insert or update statistics
     params:
     - statistics is a list of dictionaries of all statistics, mapping to the table dataselect_stats schema but without the node_id
-    - opetation is the method POST of PUT
+    - operation is the method POST of PUT
     """
     if operation == 'POST':
         sqlreq = text("""
@@ -786,10 +786,10 @@ def add_stat(request):
     return Response(text="Statistic successfully ingested to database!", content_type='text/plain')
 
 
-@view_config(route_name='restrictednets', request_method='GET')
-def restricted_networks(request):
+@view_config(route_name='isrestricted', request_method='GET')
+def isRestricted(request):
     """
-    Returns a list with the restricted networks
+    Returns whether a given network is restricted or not
     """
 
     log.info(f"{request.method} {request.url}")
@@ -799,9 +799,9 @@ def restricted_networks(request):
     '''
     try:
         session = Session()
-        sqlreq = session.query(RestrictedNetwork).with_entities(RestrictedNetwork.name).all()
+        sqlreq = session.query(Network).with_entities(Network.node_id, Network.name).all()
         session.close()
-        return Response(json={"restricted_networks": [n for net in sqlreq for n in net]}, content_type='application/json')
+        return Response(json={"restricted": "no"}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))
@@ -809,27 +809,59 @@ def restricted_networks(request):
     '''
 
 
-@view_config(route_name='addnets')
-def add_restricted(request):
+@view_config(route_name='noderestriction')
+def node_restriction_policy(request):
     """
-    Adds a restricted network to database
+    Returns new or existing default restriction policy of data center
+    Returns 400 bad request if invalid request parameter given
+    Returns 401 unauthorized if authentication is unsuccessful
     """
 
     log.info(f"{request.method} {request.url}")
     if request.method != 'POST':
         return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
+
+    # check authentication
+    # if authentication successful, return dictionary with token info
+    # else return 401 unauthorized
+    try:
+        tokenDict = check_authentication(request)
+    except Exception:
+        return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
+    if 'Failed_message' in tokenDict:
+        return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
+    else:
+        pass
+
+    log.info('Checked authentication')
 
     return Response("Not implemented yet!", status_code=200)
 
 
-@view_config(route_name='deletenets')
-def delete_restricted(request):
+@view_config(route_name='networkrestriction')
+def network_restriction_policy(request):
     """
-    Deletes a restricted network from database
+    Returns new or existing state on whether network agrees with its data center restriction policy
+    Returns 400 bad request if invalid request parameter given
+    Returns 401 unauthorized if authentication is unsuccessful
     """
 
     log.info(f"{request.method} {request.url}")
     if request.method != 'POST':
         return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
+
+    # check authentication
+    # if authentication successful, return dictionary with token info
+    # else return 401 unauthorized
+    try:
+        tokenDict = check_authentication(request)
+    except Exception:
+        return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
+    if 'Failed_message' in tokenDict:
+        return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
+    else:
+        pass
+
+    log.info('Checked authentication')
 
     return Response("Not implemented yet!", status_code=200)

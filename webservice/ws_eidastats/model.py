@@ -18,7 +18,7 @@ class Node(Base):
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
     stats = relationship("DataselectStat", back_populates="node")
-    #nets = relationship("RestrictedNetwork", back_populates="node")
+    #nets = relationship("Network", back_populates="node")
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
@@ -55,15 +55,14 @@ class DataselectStat(Base):
         'country': '', 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': int(self.clients)}
 
 
-class RestrictedNetwork(Base):
+class Network(Base):
     """
-    EIDA restricted networks
+    EIDA networks
     """
 
-    __tablename__ = 'restricted_networks'
-    id = Column(Integer, Sequence('restricted_networks_id_seq'), primary_key=True)
-    node_id = Column(Integer, ForeignKey('nodes.id'))
-    name = Column(String(10))
+    __tablename__ = 'networks'
+    node_id = Column(Integer, ForeignKey('nodes.id'), primary_key=True)
+    name = Column(String(6), primary_key=True)
     #node = relationship("Node", back_populates="nets")
 
     def to_dict(self):

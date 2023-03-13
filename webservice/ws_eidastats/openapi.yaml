@@ -14,7 +14,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for programs. Authentication required.
+        Get statistics meant to be convenient for programs. Authentication required. Different behavior depending on whether the user is data center operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
       parameters:
         - in: query
           name: start
@@ -33,14 +33,14 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible.
+            Data center member of EIDA federation. Comma separated list is possible only if the user is data center operator. For non-operators, a single data center must be specified.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is data center operator. For non-operators, a single network must be specified.
           schema:
             type: string
             example: Z32015,FR
@@ -102,7 +102,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get public statistics meant to be convenient for humans.
+        Get public statistics meant to be convenient for humans. No authentication required. Statistics for restricted networks are not available.
       parameters:
         - in: query
           name: start
@@ -126,6 +126,13 @@ paths:
             type: string
             example: RESIF,NOA
         - in: query
+          name: network
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE).
+          schema:
+            type: string
+            example: HL
+        - in: query
           name: country
           description: |
             Country code. Comma separated list is possible.
@@ -135,7 +142,7 @@ paths:
         - in: query
           name: aggregate_on
           description: |
-            Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregation for network, station, location and channel is forced.
+            Aggregate on one or more parameters to see total results for all available values of the parameter. E.g. <i>aggregate_on=month</i> to see results in total across all months given in the corresponding parameter. If no specific month was given, then request returns total statistics for all months that exist in the database.<br><i>aggregate_on=all</i> is a shortcut for <i>aggregate_on=month,datacenter,network,station,country,location,channel</i>.<br>Aggregation for station, location and channel is forced. Network aggregation is also forced when no network is specified. Aggregation is meaningful for month, datacenter and country parameters.
           schema:
             type: string
             default: network,station,location,channel
@@ -170,7 +177,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for humans. Authentication required.
+        Get statistics meant to be convenient for humans. Authentication required. Different behavior depending on whether the user is data center operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
       parameters:
         - in: query
           name: start
@@ -189,14 +196,14 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible.
+            Data center member of EIDA federation. Comma separated list is possible only if the user is data center operator. For non-operators, a single data center must be specified whenever any of the network, station, location, channel parameters is specified.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible.
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is data center operator. For non-operators, a single network must be specified whenever any of the network, station, location, channel parameters is specified.
           schema:
             type: string
             example: Z32015,FR
@@ -231,7 +238,7 @@ paths:
         - in: query
           name: aggregate_on
           description: |
-            Aggregate on one or more parameters to see total results for all available values of the parameter; e.g. aggregate_on=month to see results in total across all months given in the corresponding parameter; if no specific month was given, then request returns total statistics for all months that exist in the database; aggregate_on=all is a shortcut for aggregate_on=month,datacenter,network,station,country,location,channel; aggregation for location and channel is forced.
+            Aggregate on one or more parameters to see total results for all available values of the parameter. E.g. <i>aggregate_on=month</i> to see results in total across all months given in the corresponding parameter. If no specific month was given, then request returns total statistics for all months that exist in the database.<br><i>aggregate_on=all</i> is a shortcut for <i>aggregate_on=month,datacenter,network,station,country,location,channel</i>.<br>Aggregation for location and channel is forced.<br>For data center operators, aggregation is meaningful for month, datacenter, network, station, country parameters.<br>For non-operators, aggregation is meaningful for month, datacenter, station, country. For non-operators, aggregation is also forced for network and station if none of network, station, location or channel parameters is specified (i.e. statistics in data center level); for this case, aggregation is meaningful for month, datacenter and country parameters.
           schema:
             type: string
             default: location,channel
@@ -338,12 +345,35 @@ paths:
       - bearerAuth:
         - write:eidanode
       x-codegen-request-body-name: body
-  /restricted_networks:
-    get:
+  /node_restriction_policy:
+    post:
       tags:
         - Network restrictions
       description: |
-        Returns list of restricted networks.
+        Allows data center operators to view or modify the default restriction policy of their data center. Authentication required.
+      parameters:
+        - in: query
+          name: datacenter
+          description: |
+            Data center member of EIDA federation.
+          required: true
+          schema:
+            type: string
+            example: NOA
+        - in: query
+          name: policy
+          description: |
+            Default restriction policy of data center. 0 for open networks, 1 for restricted networks. If not specified, then the current policy is returned.
+          schema:
+            type: integer
+            example: 0
+      requestBody:
+        description: A file that contains the EIDA authentication system token
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         '200':
           description: Successful request, results follow
@@ -352,59 +382,77 @@ paths:
               schema:
                 type: object
                 properties:
-                  nodes:
-                    type: array
-                    items:
-                      type: string
-                    example: [HL,FR,GE]
-        '500':
-          description: Internal server error
-  /add_restricted:
-    post:
-      tags:
-        - Network restrictions
-      description: |
-        Add a restricted network to database.
-      responses:
-        '200':
-          description: Network successfully added to database
+                  restriction_policy:
+                    type: integer
+                    example: 0
         '400':
-          description: Bad request due to malformed data provided or network already exists
+          description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':
-          description: No token provided
+          description: Unauthorized. No valid token provided
         '403':
-          description: No valid token provided
+          description: Forbidden. User has no authority to perform the requested action
         '405':
           description: Method not allowed
         '500':
           description: Internal server error
-      security:
-      - bearerAuth:
-        - write:eidanode
-      x-codegen-request-body-name: body
-  /delete_restricted:
+  /network_restriction_policy:
     post:
       tags:
         - Network restrictions
       description: |
-        Delete a restricted network from database.
+        Allows data center operators to view or modify the restriction policy of a specific network of their data center. Authentication required.
+      parameters:
+        - in: query
+          name: datacenter
+          description: |
+            Data center member of EIDA federation.
+          required: true
+          schema:
+            type: string
+            example: NOA
+        - in: query
+          name: network
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE).
+          required: true
+          schema:
+            type: string
+            example: HL
+        - in: query
+          name: invert_policy
+          description: |
+            Whether network restriction policy agrees with its data center default or not. 0 means network has same policy as its data center, 1 means network has the opposite policy. If not specified, then the current state of network is returned.
+          schema:
+            type: integer
+            example: 0
+      requestBody:
+        description: A file that contains the EIDA authentication system token
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
       responses:
         '200':
-          description: Network successfully deleted from database
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invert_policy:
+                    type: integer
+                    example: 0
         '400':
-          description: Bad request due to malformed data provided or network not in database
+          description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':
-          description: No token provided
+          description: Unauthorized. No valid token provided
         '403':
-          description: No valid token provided
+          description: Forbidden. User has no authority to perform the requested action
         '405':
           description: Method not allowed
         '500':
           description: Internal server error
-      security:
-      - bearerAuth:
-        - write:eidanode
-      x-codegen-request-body-name: body
   /_health:
     get:
       tags:
@@ -435,6 +483,44 @@ paths:
                     items:
                       type: string
                     example: [RESIF,NOA,GEOFON]
+        '500':
+          description: Internal server error
+  /_isRestricted:
+    get:
+      tags:
+        - Internal
+      description: |
+        Returns if a given network is restricted or not. Meant for internal use.
+      parameters:
+        - in: query
+          name: datacenter
+          description: |
+            Data center member of EIDA federation.
+          required: true
+          schema:
+            type: string
+            example: NOA
+        - in: query
+          name: network
+          description: |
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE).
+          required: true
+          schema:
+            type: string
+            example: HL
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restricted:
+                    type: string
+                    example: yes
+        '400':
+          description: Bad request due to unrecognised parameter, not giving required parameters or no such network in database.
         '500':
           description: Internal server error
 components:
