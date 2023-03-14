@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime
+from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime, Boolean
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import func
 
@@ -17,8 +17,10 @@ class Node(Base):
     contact = Column(String())
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
+    restriction_policy = Column(Boolean)
+    eas_group = Column(String(20))
     stats = relationship("DataselectStat", back_populates="node")
-    #nets = relationship("Network", back_populates="node")
+    nets = relationship("Network", back_populates="node")
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
@@ -45,6 +47,7 @@ class DataselectStat(Base):
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
     node = relationship("Node", back_populates="stats")
+    #net = relationship("Network", back_populates="stats")
 
     def to_dict(self):
         return {'month': str(self.date)[:-3], 'datacenter': '', 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
@@ -63,7 +66,10 @@ class Network(Base):
     __tablename__ = 'networks'
     node_id = Column(Integer, ForeignKey('nodes.id'), primary_key=True)
     name = Column(String(6), primary_key=True)
-    #node = relationship("Node", back_populates="nets")
+    inverted_policy = Column(Boolean)
+    eas_group = Column(String(20))
+    node = relationship("Node", back_populates="nets")
+    #stats = relationship("DataselectStat", back_populates="net")
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}

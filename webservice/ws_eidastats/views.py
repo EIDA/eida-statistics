@@ -789,24 +789,38 @@ def add_stat(request):
 @view_config(route_name='isrestricted', request_method='GET')
 def isRestricted(request):
     """
-    Returns whether a given network is restricted or not
+    Returns whether a given network is restricted, open or if its restriction status is not yet defined
     """
 
     log.info(f"{request.method} {request.url}")
 
-    return Response("Not implemented yet!", status_code=200)
+    if any(x not in request.params for x in ['datacenter', 'network']):
+        return Response(f"<h1>400 Bad Request</h1><p>Both 'datacenter' and 'network' parameters are required</p>", status_code=400)
+    for key in request.params:
+        log.debug('Parameter: '+key)
+        if key not in ['datacenter', 'network']:
+            return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter '{key}'</p>", status_code=400)
 
-    '''
     try:
         session = Session()
-        sqlreq = session.query(Network).with_entities(Network.node_id, Network.name).all()
+        sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy.label('restriction_policy'), Network.inverted_policy.label('inverted_policy'))
+        sqlreq = sqlreq.filter(Node.name == request.params.get('datacenter')).filter(Network.name == request.params.get('network'))
         session.close()
-        return Response(json={"restricted": "no"}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-    '''
+
+    row = sqlreq.first()
+    if not row:
+        return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+    else:
+        if any(x is None for x in [row.restriction_policy, row.inverted_policy]):
+            return Response(json={"restricted": "not yet defined"}, content_type='application/json')
+        elif int(row.restriction_policy)^int(row.inverted_policy):
+            return Response(json={"restricted": "yes"}, content_type='application/json')
+        else:
+            return Response(json={"restricted": "no"}, content_type='application/json')
 
 
 @view_config(route_name='noderestriction')
