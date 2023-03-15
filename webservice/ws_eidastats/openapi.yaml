@@ -383,7 +383,7 @@ paths:
                 type: object
                 properties:
                   restriction_policy:
-                    type: integer
+                    type: string
                     example: 0
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
@@ -441,7 +441,7 @@ paths:
                 type: object
                 properties:
                   invert_policy:
-                    type: integer
+                    type: string
                     example: 0
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.

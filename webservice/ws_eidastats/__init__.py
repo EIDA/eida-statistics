@@ -36,5 +36,7 @@ def main(global_config, **settings):
     config.add_route('isrestricted', prefix+'/_isRestricted')
     config.add_route('noderestriction', prefix+'/node_restriction_policy')
     config.add_route('networkrestriction', prefix+'/network_restriction_policy')
-    config.scan('.views')
+    config.scan('.views_main')
+    config.scan('.views_restrictions')
+    config.scan('.views_submit')
     return config.make_wsgi_app()
