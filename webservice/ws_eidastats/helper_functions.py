@@ -17,8 +17,7 @@ def check_authentication(request):
 
     # verify signature
     gpg = gnupg.GPG(gnupghome=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'gnupghome'))
-    #verified = gpg.verify(request.body.decode())
-    verified=True
+    verified = gpg.verify(request.body.decode())
 
     if verified:
         # extract and store token info in dictionary
