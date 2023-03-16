@@ -49,28 +49,6 @@ def test_database(request):
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
 
-@view_config(route_name='nodes', request_method='GET', openapi=True)
-def get_nodes(request, internalCall=False):
-    """
-    Returns a list with the available datacenters
-    """
-
-    if internalCall:
-        log.info('Entering get_nodes')
-    else:
-        log.info(f"{request.method} {request.url}")
-
-    try:
-        session = Session()
-        sqlreq = session.query(Node).with_entities(Node.name).all()
-        session.close()
-        return Response(json={"nodes": [n for node in sqlreq for n in node]}, content_type='application/json')
-
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-
-
 @view_config(route_name='dataselectraw', openapi=True)
 def raw(request):
     """
@@ -321,7 +299,6 @@ def restricted(request):
     log.debug('Getting the results')
     results = []
     for row in sqlreq:
-
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_query(row)
             rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
@@ -389,6 +366,8 @@ def public(request):
             sqlreq = sqlreq.add_columns(DataselectStat.date)
         if 'datacenter' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.add_columns(Node.name)
+        if 'network' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.add_columns(DataselectStat.network)
         if 'country' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.add_columns(DataselectStat.country)
 
@@ -405,6 +384,8 @@ def public(request):
             sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
         if 'datacenter' in param_value_dict:
             sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'network' in param_value_dict:
+            sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
         if 'country' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
 
@@ -415,9 +396,11 @@ def public(request):
             sqlreq = sqlreq.group_by(DataselectStat.date)
         if 'datacenter' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.group_by(Node.name)
+        if 'network' not in param_value_dict['aggregate_on']:
+            sqlreq = sqlreq.group_by(DataselectStat.network)
         if 'country' not in param_value_dict['aggregate_on']:
             sqlreq = sqlreq.group_by(DataselectStat.country)
-        # force aggregation in network, station, location, channel parameters
+        # force aggregation in station, location, channel parameters
         session.close()
 
     except Exception as e:
@@ -429,13 +412,12 @@ def public(request):
     log.debug('Getting the results')
     results = []
     for row in sqlreq:
-
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_query(row)
             rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
             rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['network'] = row.network if 'network' not in param_value_dict['aggregate_on'] else '*'
             rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['network'] = '*'
             rowToDict['station'] = '*'
             rowToDict['location'] = '*'
             rowToDict['channel'] = '*'

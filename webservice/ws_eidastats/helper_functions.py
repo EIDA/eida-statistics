@@ -1,10 +1,42 @@
+from pyramid.response import Response
+from pyramid.view import view_config
 from datetime import datetime
 import gnupg
 import re
 import os
 import logging
+from ws_eidastats.model import Node
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
 
 log = logging.getLogger(__name__)
+dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
+engine = create_engine(dbURI)
+Session = sessionmaker(engine)
+
+
+@view_config(route_name='nodes', request_method='GET', openapi=True)
+def get_nodes(request, internalCall=False):
+    """
+    Returns a list with the available datacenters
+    """
+
+    if internalCall:
+        log.info('Entering get_nodes')
+    else:
+        log.info(f"{request.method} {request.url}")
+
+    try:
+        session = Session()
+        sqlreq = session.query(Node).with_entities(Node.name).all()
+        session.close()
+        return Response(json={"nodes": [n for node in sqlreq for n in node]}, content_type='application/json')
+
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+
 
 def check_authentication(request):
     """
@@ -40,7 +72,7 @@ def check_authentication(request):
         return {'Failed_message': 'Invalid token or no token file provided'}
 
 
-def check_request_parameters(request):
+def check_request_parameters(request, one_network=True):
     """
     Checks if parameters and values given in a request are acceptable
     Returns dictionary with parameters and their values if acceptable
@@ -50,15 +82,15 @@ def check_request_parameters(request):
     log.info('Entering check_request_parameters')
 
     # parameters that all methods accept
-    accepted = ['start', 'end', 'datacenter', 'country']
+    accepted = ['start', 'end', 'datacenter', 'network', 'country']
     # parameters accepted by raw method
     if 'raw' in request.url:
-        accepted += ['network', 'station', 'location', 'channel']
+        accepted += ['station', 'location', 'channel']
     # parameters accepted by restricted method
-    if 'restricted' in request.url:
-        accepted += ['network', 'station', 'location', 'channel', 'aggregate_on', 'format']
+    elif 'restricted' in request.url:
+        accepted += ['station', 'location', 'channel', 'aggregate_on', 'format']
     # parameters accepted by public method
-    if 'public' in request.url:
+    elif 'public' in request.url:
         accepted += ['aggregate_on', 'format']
 
     param_value_dict = {}
@@ -84,12 +116,17 @@ def check_request_parameters(request):
             else:
                 param_value_dict[key] = params.get(key)
         else:
-            # distinguish values given at each parameter
-            # example of params.getall(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
-            log.debug(params.getall(key))
-            temp = [p.split(",") for p in params.getall(key)] # example of temp: [["GR", "FR"], "SP"]
-            param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
-            log.debug('Multivalue fixed: '+str(param_value_dict[key]))
+            # if user is not a data center operator only one network can be specified at a time
+            if key == 'network' and one_network:
+                log.debug('Network: '+params.get(key))
+                param_value_dict[key] = [params.get(key)]
+            else:
+                # distinguish values given at each parameter
+                # example of params.getall(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
+                log.debug(params.getall(key))
+                temp = [p.split(",") for p in params.getall(key)] # example of temp: [["GR", "FR"], "SP"]
+                param_value_dict[key] = [x for y in temp for x in y] # example of param_value_dict[key]: ["GR", "FR", "SP"]
+                log.debug('Multivalue fixed: '+str(param_value_dict[key]))
             # wildcards handling
             if key in ['network', 'station', 'location', 'channel']:
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
@@ -98,8 +135,8 @@ def check_request_parameters(request):
             elif key == 'datacenter':
                 try:
                     acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']
-                except:
-                    raise Exception
+                except Exception as e:
+                    raise Exception(e)
                 log.info('Got available datacenters from database')
                 if any(x not in acceptable_nodes for x in param_value_dict[key]):
                     raise ValueError(key)
@@ -115,22 +152,27 @@ def check_request_parameters(request):
                     param_value_dict[key].append('location')
                 if 'channel' not in param_value_dict[key]:
                     param_value_dict[key].append('channel')
-                # force network and station aggreagtion for public method
+                # force station aggregation always and network aggregation when in data center level for public method
                 if 'public' in request.url:
-                    if 'network' not in param_value_dict[key]:
-                        param_value_dict[key].append('network')
                     if 'station' not in param_value_dict[key]:
                         param_value_dict[key].append('station')
+                    if 'network' not in param_value_dict and 'network' not in param_value_dict[key]:
+                        param_value_dict[key].append('network')
 
     # make some parameters mandatory
     if 'start' not in param_value_dict and 'end' not in param_value_dict:
         raise LookupError
+
+    # below lines needed in case aggregate_on or format parameters are not specified at all by the user
     # default parameters to be aggregated in restricted method: location, channel
     if 'restricted' in request.url and 'aggregate_on' not in param_value_dict:
         param_value_dict['aggregate_on'] = ['location', 'channel']
-    # default parameters to be aggregated in public method: network, station, location, channel
+    # default parameters to be aggregated in public method: station, location, channel
     if 'public' in request.url and 'aggregate_on' not in param_value_dict:
-        param_value_dict['aggregate_on'] = ['network', 'station', 'location', 'channel']
+        param_value_dict['aggregate_on'] = ['station', 'location', 'channel']
+        # force network aggregation in data center level
+        if 'network' not in param_value_dict:
+            param_value_dict['aggregate_on'].append('network')
     # default output format: csv
     if ('restricted' in request.url or 'public' in request.url) and 'format' not in param_value_dict:
         param_value_dict['format'] = 'csv'
