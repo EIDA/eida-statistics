@@ -16,12 +16,15 @@ Session = sessionmaker(engine)
 
 
 @view_config(route_name='isrestricted', request_method='GET')
-def isRestricted(request):
+def isRestricted(request, internalCall=False):
     """
     Returns whether a given network is restricted, open or if its restriction status is not yet defined
     """
 
-    log.info(f"{request.method} {request.url}")
+    if internalCall:
+        log.info('Entering get_nodes')
+    else:
+        log.info(f"{request.method} {request.url}")
 
     if any(x not in request.params for x in ['datacenter', 'network']):
         return Response(f"<h1>400 Bad Request</h1><p>Both 'datacenter' and 'network' parameters are required</p>", status_code=400)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime, Boolean
+from sqlalchemy import Column, Sequence, String, Date, Integer, ForeignKey, BigInteger, DateTime, Boolean, ForeignKeyConstraint
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import func
 
@@ -32,9 +32,9 @@ class DataselectStat(Base):
     """
 
     __tablename__ = 'dataselect_stats'
-    node_id = Column(Integer, ForeignKey('nodes.id'), ForeignKey('networks.node_id'), primary_key=True)
+    node_id = Column(Integer, ForeignKey('nodes.id'), primary_key=True)
     date = Column(Date(), primary_key=True)
-    network = Column(String(6), ForeignKey('networks.name'), primary_key=True)
+    network = Column(String(6), primary_key=True)
     station = Column(String(5), primary_key=True)
     location = Column(String(2), primary_key=True)
     channel = Column(String(3), primary_key=True)
@@ -47,8 +47,9 @@ class DataselectStat(Base):
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime())
     node = relationship("Node", back_populates="stats")
-    net = relationship("Network", overlaps="node,stats",
-                       primaryjoin="and_(DataselectStat.node_id == Network.node_id, DataselectStat.network == Network.name)")
+    net = relationship("Network", foreign_keys=[node_id, network], back_populates="stats", overlaps="node,stats")
+    __table_args__ = (ForeignKeyConstraint([node_id, network],
+                                           ["networks.node_id", "networks.name"]), {})
 
     def to_dict(self):
         return {'month': str(self.date)[:-3], 'datacenter': '', 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
@@ -70,6 +71,7 @@ class Network(Base):
     inverted_policy = Column(Boolean)
     eas_group = Column(String(20))
     node = relationship("Node", back_populates="nets")
+    stats = relationship("DataselectStat", back_populates="net", overlaps="node,stats")
 
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
