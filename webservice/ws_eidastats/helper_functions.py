@@ -16,6 +16,19 @@ engine = create_engine(dbURI)
 Session = sessionmaker(engine)
 
 
+class NoDatacenter(Exception):
+    "Raised when datacenter parameter must be specified"
+    pass
+
+class NoDatacenterAndNetwork(Exception):
+    "Raised when both datacenter and network parameterss must be specified"
+    pass
+
+class Mandatory(Exception):
+    "Raised when mandatory parameters are not specified"
+    pass
+
+
 @view_config(route_name='nodes', request_method='GET', openapi=True)
 def get_nodes(request, internalCall=False):
     """
@@ -93,8 +106,14 @@ def check_request_parameters(request, one_network=True):
     elif 'public' in request.url:
         accepted += ['aggregate_on', 'format']
 
-    param_value_dict = {}
     params = request.params
+    # make some parameters mandatory
+    if 'start' not in params and 'end' not in params:
+        raise Mandatory
+    # if user is not a data center operator and uses /raw method, both datacenter and network parameters must be specified
+    if 'raw' in request.url and one_network and any(x not in params for x in ['datacenter', 'network']):
+        raise NoDatacenterAndNetwork
+    param_value_dict = {}
     for key in params:
         log.debug('Parameter: '+key)
         if key not in accepted:
@@ -120,8 +139,11 @@ def check_request_parameters(request, one_network=True):
             if key == 'network' and one_network:
                 log.debug('Network: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
-            # if user is not a data center operator and a network is specified then only one datacenter can be specified
-            elif key == 'datacenter' and one_network and 'network' in params:
+                # if user is not operator and network is specified, then datacenter must be also specified
+                if 'datacenter' not in params:
+                    raise NoDatacenter
+            # if user is not a data center operator and either /raw method called or a network is specified, then only one datacenter can be specified
+            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params):
                 log.debug('Datacenter: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
             else:
@@ -163,10 +185,6 @@ def check_request_parameters(request, one_network=True):
                         param_value_dict[key].append('station')
                     if 'network' not in param_value_dict and 'network' not in param_value_dict[key]:
                         param_value_dict[key].append('network')
-
-    # make some parameters mandatory
-    if 'start' not in param_value_dict and 'end' not in param_value_dict:
-        raise LookupError
 
     # below lines needed in case aggregate_on or format parameters are not specified at all by the user
     # default parameters to be aggregated in restricted method: location, channel

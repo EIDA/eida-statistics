@@ -490,7 +490,7 @@ paths:
       tags:
         - Internal
       description: |
-        Returns if a given network is restricted or not. Meant for internal use.
+        Returns if a given network is restricted or not. It also returns EAS group of network. Meant for internal use.
       parameters:
         - in: query
           name: datacenter
@@ -519,6 +519,10 @@ paths:
                   restricted:
                     type: string
                     example: yes
+                  group:
+                    type: string
+                    example: Y0HBP
+                    nullable: true
         '400':
           description: Bad request due to unrecognised parameter, not giving required parameters or no such network in database.
         '500':

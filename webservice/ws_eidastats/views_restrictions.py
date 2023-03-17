@@ -37,7 +37,7 @@ def isRestricted(request, internalCall=False, datacenter=None, network=None):
 
     try:
         session = Session()
-        sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy.label('restriction_policy'), Network.inverted_policy.label('inverted_policy'))
+        sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy, Network.inverted_policy, Network.eas_group)
         sqlreq = sqlreq.filter(Node.name == datacenter).filter(Network.name == network)
         session.close()
 
@@ -49,11 +49,11 @@ def isRestricted(request, internalCall=False, datacenter=None, network=None):
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
     if any(x is None for x in [row.restriction_policy, row.inverted_policy]):
-        return Response(json={"restricted": "not yet defined"}, content_type='application/json')
+        return Response(json={"restricted": "not yet defined", "group":row.eas_group}, content_type='application/json')
     elif int(row.restriction_policy)^int(row.inverted_policy):
-        return Response(json={"restricted": "yes"}, content_type='application/json')
+        return Response(json={"restricted": "yes", "group":row.eas_group}, content_type='application/json')
     else:
-        return Response(json={"restricted": "no"}, content_type='application/json')
+        return Response(json={"restricted": "no", "group":row.eas_group}, content_type='application/json')
 
 
 @view_config(route_name='noderestriction')
@@ -94,7 +94,7 @@ def node_restriction_policy(request):
 
     # check authorization
     # only a datacenter operator can perform this action regarding only their own datacenter
-    isMember = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
+    memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
         sqlreq = session.query(Node).with_entities(Node.restriction_policy.label('restriction_policy'), Node.eas_group.label('eas_group'))
@@ -108,7 +108,7 @@ def node_restriction_policy(request):
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No such datacenter</p>", status_code=400)
 
-    if row.eas_group not in isMember:
+    if row.eas_group not in memberOf:
         return Response("<h1>403 Forbidden</h1><p>User has no authority to perform the requested action</p>", status_code=403)
 
     log.info('Checked authorization')
@@ -174,7 +174,7 @@ def network_restriction_policy(request):
 
     # check authorization
     # only a datacenter operator can perform this action regarding only their own datacenter
-    isMember = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
+    memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
         sqlreq = session.query(Node).join(Network)
@@ -189,7 +189,7 @@ def network_restriction_policy(request):
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
 
-    if row.eas_group not in isMember:
+    if row.eas_group not in memberOf:
         return Response("<h1>403 Forbidden</h1><p>User has no authority to perform the requested action</p>", status_code=403)
 
     log.info('Checked authorization')
