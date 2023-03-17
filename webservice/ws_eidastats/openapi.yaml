@@ -145,7 +145,7 @@ paths:
             Aggregate on one or more parameters to see total results for all available values of the parameter. E.g. <i>aggregate_on=month</i> to see results in total across all months given in the corresponding parameter. If no specific month was given, then request returns total statistics for all months that exist in the database.<br><i>aggregate_on=all</i> is a shortcut for <i>aggregate_on=month,datacenter,network,station,country,location,channel</i>.<br>Aggregation for station, location and channel is forced. Network aggregation is also forced when no network is specified. Aggregation is meaningful for month, datacenter and country parameters.
           schema:
             type: string
-            default: network,station,location,channel
+            default: station,location,channel
         - in: query
           name: format
           description: |

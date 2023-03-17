@@ -16,29 +16,29 @@ Session = sessionmaker(engine)
 
 
 @view_config(route_name='isrestricted', request_method='GET')
-def isRestricted(request, internalCall=False):
+def isRestricted(request, internalCall=False, datacenter=None, network=None):
     """
     Returns whether a given network is restricted, open or if its restriction status is not yet defined
     """
 
     if internalCall:
-        log.info('Entering get_nodes')
+        log.info('Entering isRestricted')
     else:
         log.info(f"{request.method} {request.url}")
-
-    if any(x not in request.params for x in ['datacenter', 'network']):
-        return Response(f"<h1>400 Bad Request</h1><p>Both 'datacenter' and 'network' parameters are required</p>", status_code=400)
-    for key in request.params:
-        log.debug('Parameter: '+key)
-        if key not in ['datacenter', 'network']:
-            return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter '{key}'</p>", status_code=400)
-
-    log.info('Checked parameters')
+        if any(x not in request.params for x in ['datacenter', 'network']):
+            return Response(f"<h1>400 Bad Request</h1><p>Both 'datacenter' and 'network' parameters are required</p>", status_code=400)
+        for key in request.params:
+            log.debug('Parameter: '+key)
+            if key not in ['datacenter', 'network']:
+                return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter '{key}'</p>", status_code=400)
+        log.info('Checked parameters')
+        datacenter = request.params.get('datacenter')
+        network = request.params.get('network')
 
     try:
         session = Session()
         sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy.label('restriction_policy'), Network.inverted_policy.label('inverted_policy'))
-        sqlreq = sqlreq.filter(Node.name == request.params.get('datacenter')).filter(Network.name == request.params.get('network'))
+        sqlreq = sqlreq.filter(Node.name == datacenter).filter(Network.name == network)
         session.close()
 
     except Exception as e:

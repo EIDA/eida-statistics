@@ -120,6 +120,10 @@ def check_request_parameters(request, one_network=True):
             if key == 'network' and one_network:
                 log.debug('Network: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
+            # if user is not a data center operator and a network is specified then only one datacenter can be specified
+            elif key == 'datacenter' and one_network and 'network' in params:
+                log.debug('Datacenter: '+params.get(key))
+                param_value_dict[key] = [params.get(key)]
             else:
                 # distinguish values given at each parameter
                 # example of params.getall(key): ["GR,FR", "SP"] from http://some_url?country=GR,FR&otherparam=value&country=SP
@@ -132,6 +136,7 @@ def check_request_parameters(request, one_network=True):
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
                 log.debug('After wildcards: '+str(param_value_dict[key]))
+            # check if datacenter exists
             elif key == 'datacenter':
                 try:
                     acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']

@@ -7,6 +7,7 @@ import json
 import re
 from ws_eidastats.model import Node, DataselectStat
 from ws_eidastats.helper_functions import check_authentication, check_request_parameters
+from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
@@ -354,6 +355,20 @@ def public(request):
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.info('Checked parameters of request')
+
+    # is network is specified, check if network is open or restricted
+    if 'network' in param_value_dict:
+        restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
+        if '500 Internal' in str(restricted.body):
+            return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+        elif '400 Bad' in str(restricted.body):
+            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+        elif '"restricted":"yes"' in str(restricted.body):
+            log.debug('Network is restricted')
+            return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>\
+            If you are a member of EIDA consider using /restricted method instead</p>", status_code=401)
+
+    log.info('Checked network restriction')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
