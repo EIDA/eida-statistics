@@ -121,7 +121,7 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible.
+            Data center member of EIDA federation. Comma separated list is possible in data center level (i.e. when network parameter is not specified).
           schema:
             type: string
             example: RESIF,NOA
@@ -196,7 +196,7 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible only if the user is data center operator. For non-operators, a single data center must be specified whenever any of the network, station, location, channel parameters is specified.
+            Data center member of EIDA federation. Comma separated list is possible in data center level or if the user is data center operator. For non-operators, a single data center must be specified whenever any of the network, station, location, channel parameters is specified.
           schema:
             type: string
             example: RESIF,NOA
