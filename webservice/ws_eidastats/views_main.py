@@ -59,7 +59,8 @@ def raw(request):
     # else return 401 unauthorized
     try:
         tokenDict = check_authentication(request)
-    except Exception:
+    except Exception as e:
+        log.error(str(e))
         return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
     if 'Failed_message' in tokenDict:
         return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
@@ -213,7 +214,8 @@ def restricted(request):
     # else return 401 unauthorized
     try:
         tokenDict = check_authentication(request)
-    except Exception:
+    except Exception as e:
+        log.error(str(e))
         return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
     if 'Failed_message' in tokenDict:
         return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
