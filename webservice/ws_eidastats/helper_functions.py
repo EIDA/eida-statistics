@@ -111,10 +111,16 @@ def check_request_parameters(request, one_network=True):
     # make some parameters mandatory
     if 'start' not in params and 'end' not in params:
         raise Mandatory
-    # if user is not a data center operator and uses /raw method, both datacenter and network parameters must be specified
+    # if user is not a data center operator and uses /raw method, then both datacenter and network parameters must be specified
     if 'raw' in request.url and one_network and any(x not in params for x in ['datacenter', 'network']):
         raise NoDatacenterAndNetwork
+    # if user is not a data center operator and uses /restricted method and specifies any of network, station, channel, location parameters,
+    # then both datacenter and network parameters must be specified
+    if 'restricted' in request.url and one_network and any(x in params for x in ['network', 'station', 'channel', 'location'])
+    and any(x not in params for x in ['datacenter', 'network']):
+        raise NoDatacenterAndNetwork
     param_value_dict = {}
+
     for key in params:
         log.debug('Parameter: '+key)
         if key not in accepted:
@@ -143,8 +149,12 @@ def check_request_parameters(request, one_network=True):
                 # if user is not operator and network is specified, then datacenter must be also specified
                 if 'datacenter' not in params:
                     raise NoDatacenter
-            # if user is not a data center operator and either /raw method called or a network is specified, then only one datacenter can be specified
-            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params):
+            # if user is not a data center operator and one of the below is true, then only one datacenter can be specified:
+            # - /raw method called
+            # - network is specified
+            # - /restricted method is called and any of country, channel, location parameters is specified
+            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params or
+            ('restricted' in request.url and any(x in params for x in ['station', 'channel', 'location']))):
                 log.debug('Datacenter: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
             else:
@@ -184,19 +194,29 @@ def check_request_parameters(request, one_network=True):
                 if 'public' in request.url:
                     if 'station' not in param_value_dict[key]:
                         param_value_dict[key].append('station')
-                    if 'network' not in param_value_dict and 'network' not in param_value_dict[key]:
+                    if 'network' not in params and 'network' not in param_value_dict[key]:
+                        param_value_dict[key].append('network')
+                # force network and station aggregation when in data center level for restricted method
+                if 'restricted' in request.url and all(x not in params for x in ['network', 'station', 'channel', 'location']):
+                    if 'station' not in param_value_dict[key]:
+                        param_value_dict[key].append('station')
+                    if 'network' not in param_value_dict[key]:
                         param_value_dict[key].append('network')
 
-    # below lines needed in case aggregate_on or format parameters are not specified at all by the user
-    # default parameters to be aggregated in restricted method: location, channel
-    if 'restricted' in request.url and 'aggregate_on' not in param_value_dict:
+    # below lines needed in case aggregate_on or format parameters are not specified at all by the user in /public and /restricted methods
+    # default parameters to be aggregated in /restricted and /public methods: location, channel
+    if ('restricted' in request.url or 'public' in request.url) and 'aggregate_on' not in param_value_dict:
         param_value_dict['aggregate_on'] = ['location', 'channel']
-    # default parameters to be aggregated in public method: station, location, channel
-    if 'public' in request.url and 'aggregate_on' not in param_value_dict:
-        param_value_dict['aggregate_on'] = ['station', 'location', 'channel']
-        # force network aggregation in data center level
-        if 'network' not in param_value_dict:
-            param_value_dict['aggregate_on'].append('network')
+        # force station aggregation always for /public method
+        if 'public' in request.url:
+            param_value_dict['aggregate_on'].append('station')
+            # force network aggregation in data center level for /public method
+            if 'network' not in param_value_dict
+                param_value_dict['aggregate_on'].append('network')
+        # force network and station aggregation in data center level for /restricted method
+        elif 'restricted' in request.url and all(x not in params for x in ['network', 'station', 'channel', 'location']):
+            param_value_dict['aggregate_on'] += ['network', 'station']
+
     # default output format: csv
     if ('restricted' in request.url or 'public' in request.url) and 'format' not in param_value_dict:
         param_value_dict['format'] = 'csv'

@@ -67,7 +67,7 @@ def raw(request):
     log.info('Checked authentication')
 
     # check authorization
-    # different behavior depending on wheter user is data center operator or not
+    # different behavior depending on whether user is data center operator or not
     memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
@@ -101,7 +101,7 @@ def raw(request):
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
     except NoDatacenterAndNetwork:
-        return Response("<h1>400 Bad Request</h1><p>Both 'datacenter' and 'network' parameters are required</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
@@ -110,7 +110,7 @@ def raw(request):
 
     # if user is not operator can only get statistics for open networks or networks to which they have access
     if not operator:
-        # is network is specified, check if network is open or restricted
+        # if network is specified, check if network is open or restricted
         if 'network' in param_value_dict:
             restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
             if '500 Internal' in str(restricted.body):
@@ -208,25 +208,8 @@ def restricted(request):
     if request.method != 'POST':
         return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
 
-    # check parameters and values
-    # return dictionary with parameters and values if acceptable
-    # otherwise catch error and return 400 bad request
-    try:
-        param_value_dict = check_request_parameters(request)
-    except KeyError as e:
-        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
-    except ValueError as e:
-        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
-    except Mandatory:
-        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
-
-    log.info('Checked parameters of request')
-
     # check authentication
-    # if authentication successful, returns dictionary with token info
+    # if authentication successful, return dictionary with token info
     # else return 401 unauthorized
     try:
         tokenDict = check_authentication(request)
@@ -236,6 +219,66 @@ def restricted(request):
         return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
 
     log.info('Checked authentication')
+
+    # check authorization
+    # different behavior depending on whether user is data center operator or not
+    memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
+    try:
+        session = Session()
+        sqlreq = session.query(Node).with_entities(Node.eas_group)
+        session.close()
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+
+    operator = False
+    for row in sqlreq:
+        if row.eas_group in memberOf:
+            operator = True
+            log.info('User is data center operator')
+            break
+
+    log.info('Checked authorization')
+
+    # check parameters and values
+    # return dictionary with parameters and values if acceptable
+    # otherwise catch error and return 400 bad request
+    try:
+        if operator:
+            param_value_dict = check_request_parameters(request, one_network=False)
+        else:
+            param_value_dict = check_request_parameters(request)
+    except KeyError as e:
+        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
+    except ValueError as e:
+        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
+    except Mandatory:
+        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+    except NoDatacenterAndNetwork:
+        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required below datacenter level</p>", status_code=400)
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+
+    log.info('Checked parameters of request')
+
+    # if user is not operator can only get statistics below datacenter level for open networks or networks to which they have access
+    if not operator:
+        # if network is specified, check if network is open or restricted
+        if 'network' in param_value_dict:
+            restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
+            if '500 Internal' in str(restricted.body):
+                return Response("<h1>500 Internal Server Error</h1>", status_code=500)
+            elif '400 Bad' in str(restricted.body):
+                return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+            # if network is restricted, check if user has access
+            elif restricted.json['restricted'] == 'yes':
+                log.debug('Network is restricted. Checking if user has access')
+                if restricted.json['group'] not in memberOf:
+                    log.info('User has no access')
+                    return Response("<h1>403 Forbidden</h1><p>User has no access to the requested network</p>", status_code=403)
+
+        log.info('Checked network restriction. User can access')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
@@ -386,14 +429,14 @@ def public(request):
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
     except NoDatacenter:
-        return Response("<h1>400 Bad Request</h1><p>For a non-operator user, 'datacenter' parameter is required for statistics below data center level</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>For non-operator users, 'datacenter' parameter is required for statistics below data center level</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
 
     log.info('Checked parameters of request')
 
-    # is network is specified, check if network is open or restricted
+    # if network is specified, check if network is open or restricted
     if 'network' in param_value_dict:
         restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
         if '500 Internal' in str(restricted.body):
