@@ -116,7 +116,7 @@ def check_request_parameters(request, one_network=True):
         raise NoDatacenterAndNetwork
     # if user is not a data center operator and uses /restricted method and specifies any of network, station, channel, location parameters,
     # then both datacenter and network parameters must be specified
-    if 'restricted' in request.url and one_network and any(x in params for x in ['network', 'station', 'channel', 'location'])
+    if 'restricted' in request.url and one_network and any(x in params for x in ['network', 'station', 'channel', 'location'])\
     and any(x not in params for x in ['datacenter', 'network']):
         raise NoDatacenterAndNetwork
     param_value_dict = {}
@@ -153,7 +153,7 @@ def check_request_parameters(request, one_network=True):
             # - /raw method called
             # - network is specified
             # - /restricted method is called and any of country, channel, location parameters is specified
-            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params or
+            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params or\
             ('restricted' in request.url and any(x in params for x in ['station', 'channel', 'location']))):
                 log.debug('Datacenter: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
@@ -211,7 +211,7 @@ def check_request_parameters(request, one_network=True):
         if 'public' in request.url:
             param_value_dict['aggregate_on'].append('station')
             # force network aggregation in data center level for /public method
-            if 'network' not in param_value_dict
+            if 'network' not in param_value_dict:
                 param_value_dict['aggregate_on'].append('network')
         # force network and station aggregation in data center level for /restricted method
         elif 'restricted' in request.url and all(x not in params for x in ['network', 'station', 'channel', 'location']):
