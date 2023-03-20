@@ -1,18 +1,9 @@
 from pyramid.response import Response
 from pyramid.view import view_config
 import os
-import logging
 import re
 from ws_eidastats.model import Node, Network
-from ws_eidastats.helper_functions import check_authentication
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-
-log = logging.getLogger(__name__)
-dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
-engine = create_engine(dbURI)
-Session = sessionmaker(engine)
+from ws_eidastats.helper_functions import check_authentication, log, Session
 
 
 @view_config(route_name='isrestricted', request_method='GET')

@@ -2,22 +2,14 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from pyramid.view import notfound_view_config
 import os
-import logging
 import json
 import re
 from ws_eidastats.model import Node, DataselectStat
-from ws_eidastats.helper_functions import check_authentication, check_request_parameters, NoDatacenter, Mandatory, NoDatacenterAndNetwork
+from ws_eidastats.helper_functions import check_authentication, check_request_parameters, NoDatacenter, Mandatory, NoDatacenterAndNetwork, log, Session
 from ws_eidastats.views_restrictions import isRestricted
-from sqlalchemy import create_engine, or_
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import or_
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import literal_column
-
-
-log = logging.getLogger(__name__)
-dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
-engine = create_engine(dbURI)
-Session = sessionmaker(engine)
 
 
 @notfound_view_config(append_slash=True)

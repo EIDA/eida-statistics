@@ -2,18 +2,11 @@ from pyramid.response import Response
 from pyramid.view import view_config
 from datetime import datetime
 import os
-import logging
 import json
 import mmh3
-from sqlalchemy import create_engine, exc
-from sqlalchemy.orm import sessionmaker
+from ws_eidastats.helper_functions import log, Session
+from sqlalchemy import exc
 from sqlalchemy.sql import text
-
-
-log = logging.getLogger(__name__)
-dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
-engine = create_engine(dbURI)
-Session = sessionmaker(engine)
 
 
 def get_node_from_token(token):
