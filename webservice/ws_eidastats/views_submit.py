@@ -77,6 +77,8 @@ def register_statistics(statistics, node_id, operation='POST'):
     params:
     - statistics is a list of dictionaries of all statistics, mapping to the table dataselect_stats schema but without the node_id
     - operation is the method POST of PUT
+    Note: If statistics with a new network are to be inserted, an SQL trigger function takes care of inserting
+    the appropriate necessary record at networks table first
     """
     if operation == 'POST':
         sqlreq = text("""
