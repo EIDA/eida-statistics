@@ -119,9 +119,8 @@ def register_statistics(statistics, node_id, operation='POST'):
     values_list = []
     for item in statistics:
         log.debug("item: %s", item)
-        # unify non-valid country codes as null value
-        if len(item['country']) != 2:
-            item['country'] = None;
+        if len(item['country']) != 2 or item['country'] is None:
+            item['country'] = ''
         # if unsuccessful requests in Null, set it to 0
         if item['nb_unsuccessful_requests'] is None:
             item['nb_unsuccessful_requests'] = 0
