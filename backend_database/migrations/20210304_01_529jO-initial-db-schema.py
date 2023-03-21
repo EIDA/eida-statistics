@@ -59,7 +59,7 @@ steps = [
     """),
     step("""
     ALTER TABLE ONLY public.dataselect_stats
-    ADD CONSTRAINT uniq_stat UNIQUE (date,network,station,location,channel,country);
+    ADD CONSTRAINT uniq_stat UNIQUE (node_id,date,network,station,location,channel,country);
     """),
     step("""
     ALTER TABLE ONLY public.tokens
