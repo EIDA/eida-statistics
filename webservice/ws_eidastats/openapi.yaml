@@ -425,6 +425,12 @@ paths:
           schema:
             type: integer
             example: 0
+        - in: query
+          name: eas_group
+          description: |
+            EAS network group name. If no such name exists in database and network is about to be restricted, a name must be specified. Otherwise, it can be left empty, so that current group name is not changed.
+          schema:
+            type: string
       requestBody:
         description: A file that contains the EIDA authentication system token
         content:
@@ -443,6 +449,9 @@ paths:
                   invert_policy:
                     type: string
                     example: 0
+                  eas_group:
+                    type: string
+                    example: Y0HBP
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':

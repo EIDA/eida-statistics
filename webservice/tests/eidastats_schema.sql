@@ -131,7 +131,7 @@ ALTER TABLE ONLY public.dataselect_stats
     ADD CONSTRAINT fk_networks FOREIGN KEY (node_id, network) REFERENCES public.networks(node_id, name);
 
 ALTER TABLE ONLY public.dataselect_stats
-    ADD CONSTRAINT uniq_stat UNIQUE (date,network,station,location,channel,country);
+    ADD CONSTRAINT uniq_stat UNIQUE (node_id,date,network,station,location,channel,country);
 
 --
 -- Name: tokens fk_nodes; Type: FK CONSTRAINT; Schema: public; Owner: postgres
