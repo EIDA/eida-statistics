@@ -24,7 +24,7 @@ CREATE EXTENSION IF NOT EXISTS hll WITH SCHEMA public;
 
 
 --
--- Name: EXTENSION hll; Type: COMMENT; Schema: -; Owner: 
+-- Name: EXTENSION hll; Type: COMMENT; Schema: -; Owner:
 --
 
 COMMENT ON EXTENSION hll IS 'type for storing hyperloglog data';
@@ -65,7 +65,9 @@ ALTER TABLE public.dataselect_stats OWNER TO postgres;
 CREATE TABLE public.nodes (
     id serial,
     name text,
-    contact text
+    contact text,
+    restriction_policy boolean,
+    eas_group text
 );
 
 
@@ -88,12 +90,31 @@ CREATE TABLE public.tokens (
 ALTER TABLE public.tokens OWNER TO postgres;
 
 --
+-- Name: networks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.networks (
+    node_id integer,
+    name character varying(6),
+    inverted_policy boolean,
+    eas_group text
+);
+
+ALTER TABLE public.networks OWNER TO postgres;
+
+--
 -- Name: nodes nodes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.nodes
     ADD CONSTRAINT nodes_pkey PRIMARY KEY (id);
 
+--
+-- Name: networks networks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.networks
+    ADD CONSTRAINT networks_pkey PRIMARY KEY (node_id, name);
 
 --
 -- Name: dataselect_stats fk_nodes; Type: FK CONSTRAINT; Schema: public; Owner: postgres
@@ -101,6 +122,13 @@ ALTER TABLE ONLY public.nodes
 
 ALTER TABLE ONLY public.dataselect_stats
     ADD CONSTRAINT fk_nodes FOREIGN KEY (node_id) REFERENCES public.nodes(id);
+
+--
+-- Name: dataselect_stats fk_networks; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dataselect_stats
+    ADD CONSTRAINT fk_networks FOREIGN KEY (node_id, network) REFERENCES public.networks(node_id, name);
 
 ALTER TABLE ONLY public.dataselect_stats
     ADD CONSTRAINT uniq_stat UNIQUE (date,network,station,location,channel,country);
@@ -116,4 +144,3 @@ ALTER TABLE ONLY public.tokens
 --
 -- PostgreSQL database dump complete
 --
-

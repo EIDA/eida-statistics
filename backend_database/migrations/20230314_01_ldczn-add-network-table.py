@@ -15,7 +15,7 @@ steps = [
     node_id integer,
     name character varying(6),
     inverted_policy boolean,
-    eas_group character varying(20),
+    eas_group text,
     PRIMARY KEY (node_id, name),
     CONSTRAINT fk_nodes
       FOREIGN KEY(node_id)
@@ -33,6 +33,6 @@ steps = [
     step("""
     ALTER TABLE public.nodes
     ADD COLUMN restriction_policy boolean,
-    ADD COLUMN eas_group character varying(20)
+    ADD COLUMN eas_group text
     """)
 ]
