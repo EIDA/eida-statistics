@@ -350,7 +350,7 @@ paths:
       tags:
         - Network restrictions
       description: |
-        Allows data center operators to view or modify the default restriction policy of their data center. Authentication required.
+        Allows data center operators to view or modify the default restriction policy of their data center. Authentication required. If default restriction policy is about to be changed and some networks become restricted, then an EAS network group name should be specified for each one of them, if there is not one already (see /network_restriction_policy method).
       parameters:
         - in: query
           name: datacenter
@@ -428,7 +428,7 @@ paths:
         - in: query
           name: eas_group
           description: |
-            EAS network group name. If no such name exists in database and network is about to be restricted, a name must be specified. Otherwise, it can be left empty, so that current group name is not changed.
+            EAS network group name. If no such name exists in database and network is about to be restricted, non-operator users will not be able to get statistics for this network under any circumstances until such a group name is specified. If left empty, the current group name is not changed.
           schema:
             type: string
       requestBody:

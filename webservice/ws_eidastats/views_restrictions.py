@@ -165,7 +165,7 @@ def network_restriction_policy(request):
     try:
         session = Session()
         sqlreq = session.query(Node).join(Network)
-        sqlreq = sqlreq.with_entities(Network.inverted_policy, Network.eas_group, Node.eas_group, Node.id)
+        sqlreq = sqlreq.with_entities(Network.inverted_policy, Network.eas_group, Node.eas_group.label('node_group'), Node.id)
         sqlreq = sqlreq.filter(Node.name == request.params.get('datacenter')).filter(Network.name == request.params.get('network'))
         session.close()
     except Exception as e:
@@ -176,7 +176,7 @@ def network_restriction_policy(request):
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
 
-    if row.eas_group not in memberOf:
+    if row.node_group not in memberOf:
         return Response("<h1>403 Forbidden</h1><p>User has no authority to perform the requested action</p>", status_code=403)
 
     log.info('Checked authorization')
@@ -185,11 +185,9 @@ def network_restriction_policy(request):
     if any(x in request.params for x in ['invert_policy', 'eas_group']):
         update_dict = {}
         if 'invert_policy' in request.params:
-            update_dict['invert_policy'] = int(request.params.get('invert_policy'))
+            update_dict['inverted_policy'] = int(request.params.get('invert_policy'))
         if 'eas_group' in request.params:
             update_dict['eas_group'] = request.params.get('eas_group')
-
-        # TODO: if network is about to be restricted force specifying eas_group parameter as well
 
         try:
             session = Session()
@@ -203,7 +201,8 @@ def network_restriction_policy(request):
             log.error(str(e))
             return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
-        return Response(json={"invert_policy": resp.inverted_policy, "eas_group": res.eas_group}, content_type='application/json')
+        return Response(json={"invert_policy": "1" if resp.inverted_policy else "0" if resp.inverted_policy is not None else None,
+                "eas_group": resp.eas_group}, content_type='application/json')
 
     # if none of the invert_policy or eas_group parameters is specified, return current inverted_policy and eas_group from database
     return Response(json={"invert_policy": "1" if row.inverted_policy else "0" if row.inverted_policy is not None else None,

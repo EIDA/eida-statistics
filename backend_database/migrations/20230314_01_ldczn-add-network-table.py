@@ -22,7 +22,7 @@ steps = [
 	  REFERENCES public.nodes(id));
     """),
     step("""
-    INSERT INTO public.networks (node_id, name, inverted_policy)
+    INSERT INTO public.networks (node_id, name)
     SELECT DISTINCT node_id, network
     FROM public.dataselect_stats;
     """),
