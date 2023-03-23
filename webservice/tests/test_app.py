@@ -3,7 +3,7 @@
 import pytest
 from webtest import TestApp
 from pytest_postgresql import factories
-from ws_eidastats import main, views, model
+from ws_eidastats import main, views_main, model
 
 
 postgresql_my_proc = factories.postgresql_noproc(host="localhost", port="5432", password="password")
@@ -31,7 +31,7 @@ def test_wrong_parameter(app):
     Check request with invalid parameter given
     """
 
-    response = app.get('/dataselect/public?wrong=stg', status=400)
+    response = app.get('/dataselect/public?start=2022-01&wrong=stg', status=400)
 
     assert 'Invalid parameter' in str(response.body)
 
@@ -51,7 +51,7 @@ def test_wrong_parameter_value_aggregate(app):
     Check request with invalid value of aggregate_on parameter given
     """
 
-    response = app.get('/dataselect/public?aggregate_on=stg', status=400)
+    response = app.get('/dataselect/public?end=2022-01&aggregate_on=stg', status=400)
 
     assert 'Unsupported value for parameter' in str(response.body)
 
@@ -61,7 +61,7 @@ def test_wrong_parameter_value_format(app):
     Check request with invalid value of format parameter given
     """
 
-    response = app.get('/dataselect/public?format=stg', status=400)
+    response = app.get('/dataselect/public?end=2022-01&format=stg', status=400)
 
     assert 'Unsupported value for parameter' in str(response.body)
 
@@ -97,3 +97,13 @@ def test_no_token(app):
     response = app.post('/dataselect/raw?start=2021-05&country=GR', status=401)
 
     assert 'no token' in str(response.body)
+
+
+def test_method_not_allowed(app):
+    """
+    Check GET method not allowed
+    """
+
+    response = app.get('/dataselect/restricted?start=2021-05&country=GR', status=405)
+
+    assert 'Not Allowed' in str(response.body)
