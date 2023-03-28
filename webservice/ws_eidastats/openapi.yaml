@@ -350,7 +350,7 @@ paths:
       tags:
         - Network restrictions
       description: |
-        Allows data center operators to view or modify the default restriction policy of their data center. Authentication required. If default restriction policy is about to be changed and some networks become restricted, then an EAS network group name should be specified for each one of them, if there is not one already (see /network_restriction_policy method).
+        View the default restriction policy of a data center.
       parameters:
         - in: query
           name: datacenter
@@ -360,20 +360,6 @@ paths:
           schema:
             type: string
             example: NOA
-        - in: query
-          name: policy
-          description: |
-            Default restriction policy of data center. 0 for open networks, 1 for restricted networks. If not specified, then the current policy is returned.
-          schema:
-            type: integer
-            example: 0
-      requestBody:
-        description: A file that contains the EIDA authentication system token
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
       responses:
         '200':
           description: Successful request, results follow
@@ -387,12 +373,6 @@ paths:
                     example: 0
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
-        '401':
-          description: Unauthorized. No valid token provided
-        '403':
-          description: Forbidden. User has no authority to perform the requested action
-        '405':
-          description: Method not allowed
         '500':
           description: Internal server error
   /network_restriction_policy:
@@ -400,7 +380,7 @@ paths:
       tags:
         - Network restrictions
       description: |
-        Allows data center operators to view or modify the restriction policy of a specific network of their data center. Authentication required.
+        View the state on whether network agrees with its data center restriction policy, as well as EAS network group name, if any.
       parameters:
         - in: query
           name: datacenter
@@ -418,26 +398,6 @@ paths:
           schema:
             type: string
             example: HL
-        - in: query
-          name: invert_policy
-          description: |
-            Whether network restriction policy agrees with its data center default or not. 0 means network has same policy as its data center, 1 means network has the opposite policy. If not specified, then the current state of network is returned.
-          schema:
-            type: integer
-            example: 0
-        - in: query
-          name: eas_group
-          description: |
-            EAS network group name. If no such name exists in database and network is about to be restricted, non-operator users will not be able to get statistics for this network under any circumstances until such a group name is specified. If left empty, the current group name is not changed.
-          schema:
-            type: string
-      requestBody:
-        description: A file that contains the EIDA authentication system token
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
       responses:
         '200':
           description: Successful request, results follow
@@ -454,12 +414,6 @@ paths:
                     example: Y0HBP
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
-        '401':
-          description: Unauthorized. No valid token provided
-        '403':
-          description: Forbidden. User has no authority to perform the requested action
-        '405':
-          description: Method not allowed
         '500':
           description: Internal server error
   /_health:
