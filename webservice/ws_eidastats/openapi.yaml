@@ -121,7 +121,7 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible in data center level (i.e. when network parameter is not specified).
+            Data center member of EIDA federation. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
@@ -140,12 +140,20 @@ paths:
             type: string
             example: FR,GR
         - in: query
-          name: aggregate_on
+          name: level
           description: |
-            Aggregate on one or more parameters to see total results for all available values of the parameter. E.g. <i>aggregate_on=month</i> to see results in total across all months given in the corresponding parameter. If no specific month was given, then request returns total statistics for all months that exist in the database.<br><i>aggregate_on=all</i> is a shortcut for <i>aggregate_on=month,datacenter,network,station,country,location,channel</i>.<br>Aggregation for station, location and channel is forced. Network aggregation is also forced when no network is specified. Aggregation is meaningful for month, datacenter and country parameters.
+            Level of results. Can be one of 'datacenter', 'network' or empty. Empty means accross all EIDA.
           schema:
             type: string
-            default: station,location,channel
+            enum:
+              - datacenter
+              - network
+        - in: query
+          name: details
+          description: |
+            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross month/year and country parameters.
+          schema:
+            type: string
         - in: query
           name: format
           description: |
@@ -163,13 +171,15 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&country=GR,FR\n# aggregated_on: month,country,network,station,location,channel\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,*,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
                 $ref: '#/components/schemas/StatisticsPublicResponseObject'
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
+        '401':
+          description: Unauthorized. No access to restricted data
         '500':
           description: Internal server error
   /dataselect/restricted:
@@ -196,7 +206,7 @@ paths:
         - in: query
           name: datacenter
           description: |
-            Data center member of EIDA federation. Comma separated list is possible in data center level or if the user is data center operator. For non-operators, a single data center must be specified whenever any of the network, station, location, channel parameters is specified.
+            Data center member of EIDA federation. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
@@ -236,12 +246,23 @@ paths:
             type: string
             example: FR,GR
         - in: query
-          name: aggregate_on
+          name: level
           description: |
-            Aggregate on one or more parameters to see total results for all available values of the parameter. E.g. <i>aggregate_on=month</i> to see results in total across all months given in the corresponding parameter. If no specific month was given, then request returns total statistics for all months that exist in the database.<br><i>aggregate_on=all</i> is a shortcut for <i>aggregate_on=month,datacenter,network,station,country,location,channel</i>.<br>Aggregation for location and channel is forced.<br>For data center operators, aggregation is meaningful for month, datacenter, network, station, country parameters.<br>For non-operators, aggregation is meaningful for month, datacenter, station, country. For non-operators, aggregation is also forced for network and station if none of network, station, location or channel parameters is specified (i.e. statistics in data center level); for this case, aggregation is meaningful for month, datacenter and country parameters.
+            Level of results. Can be one of 'datacenter', 'network', 'station', 'location', 'channel' or empty. Empty means accross all EIDA.
           schema:
             type: string
-            default: location,channel
+            enum:
+              - datacenter
+              - network
+              - station
+              - location
+              - channel
+        - in: query
+          name: details
+          description: |
+            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross month/year and country parameters.
+          schema:
+            type: string
         - in: query
           name: format
           description: |
@@ -266,7 +287,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR\n# aggregated_on: month,country,location,channel\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,HGN,*,*,*,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -346,7 +367,7 @@ paths:
         - write:eidanode
       x-codegen-request-body-name: body
   /node_restriction_policy:
-    post:
+    get:
       tags:
         - Network restrictions
       description: |
@@ -376,7 +397,7 @@ paths:
         '500':
           description: Internal server error
   /network_restriction_policy:
-    post:
+    get:
       tags:
         - Network restrictions
       description: |
@@ -551,10 +572,7 @@ components:
           example: 1.0.0
         matching:
           type: string
-          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR'
-        aggregated_on:
-          type: string
-          example: 'month,country,location,channel'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country'
         results:
           type: array
           items:
@@ -562,7 +580,7 @@ components:
     HumanResponseResult:
       type: object
       properties:
-        month:
+        month/year:
           type: string
           example: '*'
         datacenter:
@@ -573,7 +591,7 @@ components:
           example: NL
         station:
           type: string
-          example: HGN
+          example: '*'
         location:
           type: string
           example: '*'
@@ -582,7 +600,7 @@ components:
           example: '*'
         country:
           type: string
-          example: '*'
+          example: GR
           nullable: true
         bytes:
           type: integer
@@ -605,10 +623,7 @@ components:
           example: 1.0.0
         matching:
           type: string
-          example: 'start=2021-01&end=2021-12&datacenter=RESIF&country=GR,FR'
-        aggregated_on:
-          type: string
-          example: 'month,country,network,station,location,channel'
+          example: 'start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country'
         results:
           type: array
           items:
@@ -616,7 +631,7 @@ components:
     PublicResponseResult:
       type: object
       properties:
-        month:
+        month/year:
           type: string
           example: '*'
         datacenter:
@@ -636,7 +651,7 @@ components:
           example: '*'
         country:
           type: string
-          example: '*'
+          example: GR
           nullable: true
         bytes:
           type: integer
