@@ -107,8 +107,8 @@ def check_request_parameters(request, one_network=True):
         accepted += ['aggregate_on', 'format']
 
     params = request.params
-    # make some parameters mandatory
-    if 'start' not in params and 'end' not in params:
+    # make start parameter mandatory
+    if 'start' not in params:
         raise Mandatory
     # if user is not a data center operator and uses /raw method, then both datacenter and network parameters must be specified
     if 'raw' in request.url and one_network and any(x not in params for x in ['datacenter', 'network']):

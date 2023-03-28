@@ -100,7 +100,7 @@ def raw(request):
     except ValueError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
-        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
     except NoDatacenterAndNetwork:
         return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required</p>", status_code=400)
     except Exception as e:
@@ -255,7 +255,7 @@ def restricted(request):
     except ValueError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
-        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
     except NoDatacenterAndNetwork:
         return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required below datacenter level</p>", status_code=400)
     except Exception as e:
@@ -429,7 +429,7 @@ def public(request):
     except ValueError as e:
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
-        return Response("<h1>400 Bad Request</h1><p>Specify at least one of 'start' or 'end' parameters</p>", status_code=400)
+        return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
     except NoDatacenter:
         return Response("<h1>400 Bad Request</h1><p>For non-operator users, 'datacenter' parameter is required for statistics below data center level</p>", status_code=400)
     except Exception as e:
