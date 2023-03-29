@@ -114,9 +114,9 @@ def raw(request):
         # if network is specified, check if network is open or restricted
         if 'network' in param_value_dict:
             restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
-            if '500 Internal' in str(restricted.body):
-                return Response("<h1>500 Internal Server Error</h1>", status_code=500)
-            elif '400 Bad' in str(restricted.body):
+            if restricted.status_code == 500:
+                return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+            elif restricted.status_code == 400:
                 return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
             # if network is restricted, check if user has access
             elif restricted.json['restricted'] == 'yes':
@@ -270,9 +270,9 @@ def restricted(request):
         # if network is specified, check if network is open or restricted
         if 'network' in param_value_dict:
             restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
-            if '500 Internal' in str(restricted.body):
-                return Response("<h1>500 Internal Server Error</h1>", status_code=500)
-            elif '400 Bad' in str(restricted.body):
+            if restricted.status_code == 500:
+                return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+            elif restricted.status_code == 400:
                 return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
             # if network is restricted, check if user has access
             elif restricted.json['restricted'] == 'yes':
@@ -440,11 +440,11 @@ def public(request):
     # if network is specified, check if network is open or restricted
     if 'network' in param_value_dict:
         restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
-        if '500 Internal' in str(restricted.body):
-            return Response("<h1>500 Internal Server Error</h1>", status_code=500)
-        elif '400 Bad' in str(restricted.body):
+        if restricted.status_code == 500:
+            return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+        elif restricted.status_code == 400:
             return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
-        elif '"restricted":"yes"' in str(restricted.body):
+        elif restricted.json['restricted'] == 'yes':
             log.debug('Network is restricted')
             return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>"+\
                     "If you are a member of EIDA consider using /restricted method instead</p>", status_code=401)
