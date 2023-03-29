@@ -17,15 +17,19 @@ Session = sessionmaker(engine)
 
 
 class NoNetwork(Exception):
-    "Raised when network parameter must be specified"
+    "Raised when network parameter must have been specified"
     pass
 
 class NoDatacenterAndNetwork(Exception):
-    "Raised when both datacenter and network parameterss must be specified"
+    "Raised when both datacenter and network parameters must have been specified"
     pass
 
 class Mandatory(Exception):
     "Raised when mandatory parameters are not specified"
+    pass
+
+class BothMonthYear(Exception):
+    "Raised when both month and year are given in the detail parameter"
     pass
 
 
@@ -184,10 +188,13 @@ def check_request_parameters(request, one_network=True):
                 log.info('Got available datacenters from database')
                 if any(x not in acceptable_nodes for x in param_value_dict[key]):
                     raise ValueError(key)
-            # details parameter special handling
+            # details parameter
             elif key == 'details':
-                if any(x not in ['month', 'year', 'country'] for x in param_value_dict[key]) or all(x in param_value_dict[key] for x in ['month', 'year']):
+                if any(x not in ['month', 'year', 'country'] for x in param_value_dict[key]):
                     raise ValueError(key)
+                # can't have both month and year details
+                if all(x in param_value_dict[key] for x in ['month', 'year']):
+                    raise BothMonthYear
 
     log.debug('Final parameters: '+str(param_value_dict))
     return param_value_dict

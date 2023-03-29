@@ -5,7 +5,8 @@ import os
 import json
 import re
 from ws_eidastats.model import Node, DataselectStat
-from ws_eidastats.helper_functions import check_authentication, check_request_parameters, NoNetwork, Mandatory, NoDatacenterAndNetwork, log, Session
+from ws_eidastats.helper_functions import check_authentication, check_request_parameters, log, Session
+from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoDatacenterAndNetwork, BothMonthYear
 from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import or_
 from sqlalchemy.sql import func
@@ -259,6 +260,8 @@ def restricted(request):
     except NoNetwork:
         return Response("<h1>400 Bad Request</h1><p>For non-operator users, 'network' parameter is required below network level"+\
                 " or whenever any of the 'station', 'location', 'channel' parameters are specified</p>", status_code=400)
+    except BothMonthYear:
+        return Response("<h1>400 Bad Request</h1><p>Only one of 'month' or 'year' details can be requested each time</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
@@ -431,6 +434,8 @@ def public(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
+    except BothMonthYear:
+        return Response("<h1>400 Bad Request</h1><p>Only one of 'month' or 'year' details can be requested each time</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
