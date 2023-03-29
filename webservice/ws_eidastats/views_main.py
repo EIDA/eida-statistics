@@ -5,7 +5,7 @@ import os
 import json
 import re
 from ws_eidastats.model import Node, DataselectStat
-from ws_eidastats.helper_functions import check_authentication, check_request_parameters, NoDatacenter, Mandatory, NoDatacenterAndNetwork, log, Session
+from ws_eidastats.helper_functions import check_authentication, check_request_parameters, NoNetwork, Mandatory, NoDatacenterAndNetwork, log, Session
 from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import or_
 from sqlalchemy.sql import func
@@ -256,8 +256,9 @@ def restricted(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
-    except NoDatacenterAndNetwork:
-        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required below datacenter level</p>", status_code=400)
+    except NoNetwork:
+        return Response("<h1>400 Bad Request</h1><p>For non-operator users, 'network' parameter is required below network level"+\
+                " or whenever any of the 'station', 'location', 'channel' parameters are specified</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
@@ -392,7 +393,7 @@ def restricted(request):
             results.append(rowToDict)
 
     # return json or csv with metadata
-    if param_value_dict['format'] == 'json':
+    if param_value_dict.get('format') == 'json':
         log.debug('Returning the results as JSON')
         return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
                 'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),
@@ -430,8 +431,6 @@ def public(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
-    except NoDatacenter:
-        return Response("<h1>400 Bad Request</h1><p>For non-operator users, 'datacenter' parameter is required for statistics below data center level</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
@@ -447,8 +446,8 @@ def public(request):
             return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
         elif '"restricted":"yes"' in str(restricted.body):
             log.debug('Network is restricted')
-            return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>\
-            If you are a member of EIDA consider using /restricted method instead</p>", status_code=401)
+            return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>"+\
+                    "If you are a member of EIDA consider using /restricted method instead</p>", status_code=401)
 
     log.info('Checked network restriction')
 
@@ -521,7 +520,7 @@ def public(request):
             results.append(rowToDict)
 
     # return json or csv with metadata
-    if param_value_dict['format'] == 'json':
+    if param_value_dict.get('format') == 'json':
         log.debug('Returning the results as JSON')
         return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
                 'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),

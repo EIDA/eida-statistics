@@ -16,8 +16,8 @@ engine = create_engine(dbURI)
 Session = sessionmaker(engine)
 
 
-class NoDatacenter(Exception):
-    "Raised when datacenter parameter must be specified"
+class NoNetwork(Exception):
+    "Raised when network parameter must be specified"
     pass
 
 class NoDatacenterAndNetwork(Exception):
@@ -101,23 +101,22 @@ def check_request_parameters(request, one_network=True):
         accepted += ['station', 'location', 'channel']
     # parameters accepted by restricted method
     elif 'restricted' in request.url:
-        accepted += ['station', 'location', 'channel', 'aggregate_on', 'format']
+        accepted += ['station', 'location', 'channel', 'level', 'details', 'format']
     # parameters accepted by public method
     elif 'public' in request.url:
-        accepted += ['aggregate_on', 'format']
+        accepted += ['level', 'details', 'format']
 
     params = request.params
     # make start parameter mandatory
     if 'start' not in params:
         raise Mandatory
-    # if user is not a data center operator and uses /raw method, then both datacenter and network parameters must be specified
+    # if /raw method is used and user is not a data center operator, then both datacenter and network parameters must be specified
     if 'raw' in request.url and one_network and any(x not in params for x in ['datacenter', 'network']):
         raise NoDatacenterAndNetwork
-    # if user is not a data center operator and uses /restricted method and specifies any of network, station, channel, location parameters,
-    # then both datacenter and network parameters must be specified
-    if 'restricted' in request.url and one_network and any(x in params for x in ['network', 'station', 'channel', 'location'])\
-    and any(x not in params for x in ['datacenter', 'network']):
-        raise NoDatacenterAndNetwork
+    # if /restricted method is used and user is not a data center operator and specifies any of station, channel, location parameters
+    # then network parameter must be specified
+    if 'restricted' in request.url and one_network and any(x in params for x in ['station', 'channel', 'location']) and 'network' not in params:
+        raise NoNetwork
     param_value_dict = {}
 
     for key in params:
@@ -140,20 +139,28 @@ def check_request_parameters(request, one_network=True):
                 raise ValueError(key)
             else:
                 param_value_dict[key] = params.get(key)
+        elif key == 'level':
+            # level acceptable values depending on the method
+            log.debug('Level: '+params.get(key))
+            if params.get(key) not in ['datacenter', 'network', 'station', 'location', 'channel']:
+                raise ValueError(key)
+            elif 'public' in request.url and params.get(key) not in ['datacenter', 'network']:
+                raise ValueError(key)
+            else:
+                # if /restricted method is used and user is not a data center operator and level is below network
+                # then network parameter must be specified
+                if 'restricted' in request.url and one_network and params.get(key) in ['station', 'location', 'channel'] and 'network' not in params:
+                    raise NoNetwork
+                else:
+                    param_value_dict[key] = params.get(key)
+        # parameters that can have multiple values
         else:
             # if user is not a data center operator only one network can be specified at a time
             if key == 'network' and one_network:
                 log.debug('Network: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
-                # if user is not operator and network is specified, then datacenter must be also specified
-                if 'datacenter' not in params:
-                    raise NoDatacenter
-            # if user is not a data center operator and one of the below is true, then only one datacenter can be specified:
-            # - /raw method called
-            # - network is specified
-            # - /restricted method is called and any of country, channel, location parameters is specified
-            elif key == 'datacenter' and one_network and ('raw' in request.url or 'network' in params or\
-            ('restricted' in request.url and any(x in params for x in ['station', 'channel', 'location']))):
+            # if /raw method is used and user is not a data center operator and one of the below is true, then only one datacenter can be specified
+            elif key == 'datacenter' and one_network and 'raw' in request.url:
                 log.debug('Datacenter: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
             else:
@@ -177,48 +184,10 @@ def check_request_parameters(request, one_network=True):
                 log.info('Got available datacenters from database')
                 if any(x not in acceptable_nodes for x in param_value_dict[key]):
                     raise ValueError(key)
-            # aggregate_on parameter special handling
-            elif key == 'aggregate_on':
-                if 'all' in param_value_dict[key]:
-                    param_value_dict[key] = ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel']
-                else:
-                    if any(x not in ['month', 'datacenter', 'network', 'station', 'country', 'location', 'channel'] for x in param_value_dict[key]):
-                        raise ValueError(key)
-                # default parameters to be aggregated in restricted and public methods: location, channel
-                if 'location' not in param_value_dict[key]:
-                    param_value_dict[key].append('location')
-                if 'channel' not in param_value_dict[key]:
-                    param_value_dict[key].append('channel')
-                # force station aggregation always and network aggregation when in data center level for public method
-                if 'public' in request.url:
-                    if 'station' not in param_value_dict[key]:
-                        param_value_dict[key].append('station')
-                    if 'network' not in params and 'network' not in param_value_dict[key]:
-                        param_value_dict[key].append('network')
-                # force network and station aggregation when in data center level for restricted method
-                if 'restricted' in request.url and all(x not in params for x in ['network', 'station', 'channel', 'location']):
-                    if 'station' not in param_value_dict[key]:
-                        param_value_dict[key].append('station')
-                    if 'network' not in param_value_dict[key]:
-                        param_value_dict[key].append('network')
-
-    # below lines needed in case aggregate_on or format parameters are not specified at all by the user in /public and /restricted methods
-    # default parameters to be aggregated in /restricted and /public methods: location, channel
-    if ('restricted' in request.url or 'public' in request.url) and 'aggregate_on' not in param_value_dict:
-        param_value_dict['aggregate_on'] = ['location', 'channel']
-        # force station aggregation always for /public method
-        if 'public' in request.url:
-            param_value_dict['aggregate_on'].append('station')
-            # force network aggregation in data center level for /public method
-            if 'network' not in param_value_dict:
-                param_value_dict['aggregate_on'].append('network')
-        # force network and station aggregation in data center level for /restricted method
-        elif 'restricted' in request.url and all(x not in params for x in ['network', 'station', 'channel', 'location']):
-            param_value_dict['aggregate_on'] += ['network', 'station']
-
-    # default output format: csv
-    if ('restricted' in request.url or 'public' in request.url) and 'format' not in param_value_dict:
-        param_value_dict['format'] = 'csv'
+            # details parameter special handling
+            elif key == 'details':
+                if any(x not in ['month', 'year', 'country'] for x in param_value_dict[key]) or all(x in param_value_dict[key] for x in ['month', 'year']):
+                    raise ValueError(key)
 
     log.debug('Final parameters: '+str(param_value_dict))
     return param_value_dict
