@@ -171,7 +171,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -287,7 +287,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# matching: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -570,7 +570,7 @@ components:
         version:
           type: string
           example: 1.0.0
-        matching:
+        request_parameters:
           type: string
           example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country'
         results:
@@ -621,7 +621,7 @@ components:
         version:
           type: string
           example: 1.0.0
-        matching:
+        request_parameters:
           type: string
           example: 'start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country'
         results:

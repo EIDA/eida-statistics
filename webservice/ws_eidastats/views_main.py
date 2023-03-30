@@ -49,6 +49,7 @@ def raw(request):
     Returns statistics to be used by computer
     Returns 400 bad request if invalid request parameter given
     Returns 401 unauthorized if authentication is unsuccessful
+    Returns 403 forbidden if user has no access to restricted network
     """
 
     log.info(f"{request.method} {request.url}")
@@ -204,6 +205,7 @@ def restricted(request):
     Returns statistics to be read by human
     Returns 400 bad request if invalid request parameter given
     Returns 401 unauthorized if authentication is unsuccessful
+    Returns 403 forbidden if user has no access to restricted network
     """
 
     log.info(f"{request.method} {request.url}")
@@ -268,60 +270,63 @@ def restricted(request):
 
     log.info('Checked parameters of request')
 
-    # if user is not operator can only get statistics below datacenter level for open networks or networks to which they have access
-    if not operator:
-        # if network is specified, check if network is open or restricted
-        if 'network' in param_value_dict:
-            restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
+    # if user is not operator and network is specified, check if either network is open or user has access to it at least in one data center
+    if not operator and 'network' in param_value_dict:
+        access = False
+        noEntry = True
+        datacenters = param_value_dict.get('datacenter')
+        # if no datacenter is specified, get all available datacenters from database
+        if datacenters is None:
+            try:
+                datacenters = get_nodes(request, internalCall=True).json['nodes']
+            except Exception as e:
+                raise Exception(e)
+        for dc in datacenters:
+            restricted = isRestricted(request, internalCall=True, datacenter=dc, network=param_value_dict['network'][0])
             if restricted.status_code == 500:
                 return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-            elif restricted.status_code == 400:
-                return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+            if restricted.status_code == 400:
+                continue
+            else:
+                noEntry = False
+            if restricted.json['restricted'] == 'no':
+                log.debug('Network is open at least in one datacenter')
+                access = True
+                break
             # if network is restricted, check if user has access
-            elif restricted.json['restricted'] == 'yes':
-                log.debug('Network is restricted. Checking if user has access')
-                if restricted.json['group'] not in memberOf:
-                    log.info('User has no access')
-                    return Response("<h1>403 Forbidden</h1><p>User has no access to the requested network</p>", status_code=403)
+            elif restricted.json['restricted'] == 'yes' and restricted.json['group'] in memberOf:
+                log.info('User can access restricted network')
+                access = True
+                break
+        if noEntry:
+            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+        if not access:
+            log.debug('Network is restricted and user has no access')
+            return Response("<h1>403 Forbidden</h1><p>User has no access to the requested network</p>", status_code=403)
 
-        log.info('Checked network restriction. User can access')
+        log.info('Checked network restriction')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
         session = Session()
         sqlreq = session.query(DataselectStat).join(Node).with_entities()
 
-        # if aggregate on a parameter don't select it
-        # instead return '*' for it meaning all matching instances of parameter
+        # select needed columns depending on level and details
+        # return '*' for not selected columns meaning all matching instances
         if 'level' in param_value_dict:
-            sqlreq = sqlreq.add_columns(Dataselect.node_id)
+            sqlreq = sqlreq.add_columns(Node.name)
         if param_value_dict.get('level') in ['network', 'station', 'location', 'channel']:
-            sqlreq = sqlreq.add_columns(Dataselect.network)
+            sqlreq = sqlreq.add_columns(DataselectStat.network)
         if param_value_dict.get('level') in ['station', 'location', 'channel']:
-            sqlreq = sqlreq.add_columns(Dataselect.station)
+            sqlreq = sqlreq.add_columns(DataselectStat.station)
         if param_value_dict.get('level') in ['location', 'channel']:
-            sqlreq = sqlreq.add_columns(Dataselect.location)
+            sqlreq = sqlreq.add_columns(DataselectStat.location)
         if param_value_dict.get('level') == 'channel':
-            sqlreq = sqlreq.add_columns(Dataselect.channel)
+            sqlreq = sqlreq.add_columns(DataselectStat.channel)
         if 'month' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.date)
         if 'country' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.country)
-
-        if 'month' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.date)
-        if 'datacenter' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(Node.name)
-        if 'network' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.network)
-        if 'station' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.station)
-        if 'country' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.country)
-        if 'location' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.location)
-        if 'channel' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.add_columns(DataselectStat.channel)
 
         # fields to be summed up
         sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),
@@ -371,23 +376,22 @@ def restricted(request):
                     multiOR = or_(multiOR, DataselectStat.channel == cha)
             sqlreq = sqlreq.filter(multiOR)
 
-        # aggregate on requested parameters
-        # group_by is the opposite process of the desired aggregation
+        # group_by clause for the details
         log.debug('Making the GROUP BY clause')
-        if 'month' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.group_by(DataselectStat.date)
-        if 'datacenter' not in param_value_dict['aggregate_on']:
+        if 'level' in param_value_dict:
             sqlreq = sqlreq.group_by(Node.name)
-        if 'network' not in param_value_dict['aggregate_on']:
+        if param_value_dict.get('level') in ['network', 'station', 'location', 'channel']:
             sqlreq = sqlreq.group_by(DataselectStat.network)
-        if 'station' not in param_value_dict['aggregate_on']:
+        if param_value_dict.get('level') in ['station', 'location', 'channel']:
             sqlreq = sqlreq.group_by(DataselectStat.station)
-        if 'country' not in param_value_dict['aggregate_on']:
-            sqlreq = sqlreq.group_by(DataselectStat.country)
-        if 'location' not in param_value_dict['aggregate_on']:
+        if param_value_dict.get('level') in ['location', 'channel']:
             sqlreq = sqlreq.group_by(DataselectStat.location)
-        if 'channel' not in param_value_dict['aggregate_on']:
+        if param_value_dict.get('level') == 'channel':
             sqlreq = sqlreq.group_by(DataselectStat.channel)
+        if 'month' in param_value_dict['details']:
+            sqlreq = sqlreq.group_by(DataselectStat.date)
+        if 'country' in param_value_dict['details']:
+            sqlreq = sqlreq.group_by(DataselectStat.country)
         session.close()
 
     except Exception as e:
@@ -401,26 +405,24 @@ def restricted(request):
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
-            rowToDict['month'] = str(row.date)[:-3] if 'month' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['datacenter'] = row.name if 'datacenter' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['network'] = row.network if 'network' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['station'] = row.station if 'station' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['country'] = row.country if 'country' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['location'] = row.location if 'location' not in param_value_dict['aggregate_on'] else '*'
-            rowToDict['channel'] = row.channel if 'channel' not in param_value_dict['aggregate_on'] else '*'
+            rowToDict['month/year'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else '*'
+            rowToDict['datacenter'] = row.name if 'level' in param_value_dict else '*'
+            rowToDict['network'] = row.network if param_value_dict.get('level') in ['network', 'station', 'location', 'channel'] else '*'
+            rowToDict['station'] = row.station if param_value_dict.get('level') in ['station', 'location', 'channel'] else '*'
+            rowToDict['location'] = row.location if param_value_dict.get('level') in ['location', 'channel'] else '*'
+            rowToDict['channel'] = row.channel if param_value_dict.get('level') == 'channel' else '*'
+            rowToDict['country'] = row.country if 'country' in param_value_dict['details'] else '*'
             results.append(rowToDict)
 
     # return json or csv with metadata
     if param_value_dict.get('format') == 'json':
         log.debug('Returning the results as JSON')
-        return Response(text=json.dumps({'version': '1.0.0', 'matching': re.sub('&aggregate_on[^&]+', '', request.query_string),
-                'aggregated_on': ','.join(param_value_dict['aggregate_on']), 'results': results}, default=str),
+        return Response(text=json.dumps({'version': '1.0.0', 'request_parameters': request.query_string, 'results': results}, default=str),
                 content_type='application/json', charset='utf-8')
     else:
         log.debug('Returning the results as CSV')
-        csvText = "# version: 1.0.0\n# matching: " + re.sub('&aggregate_on[^&]+', '', request.query_string) +\
-            "\n# aggregated_on: " + ','.join(param_value_dict['aggregate_on']) +\
-            "\nmonth,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+        csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
+            "\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
             for field in res:
@@ -434,6 +436,7 @@ def public(request):
     """
     Returns public statistics to be read by human
     Returns 400 bad request if invalid request parameter given
+    Returns 401 unauthorized if network is restricted
     """
 
     log.info(f"{request.method} {request.url}")
@@ -487,7 +490,7 @@ def public(request):
             return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>"+\
                     "If you are a member of EIDA consider using /restricted method instead</p>", status_code=401)
 
-    log.info('Checked network restriction')
+        log.info('Checked network restriction')
 
     try:
         log.debug('Connecting to db, SELECT and FROM clause')
@@ -558,11 +561,11 @@ def public(request):
     # return json or csv with metadata
     if param_value_dict.get('format') == 'json':
         log.debug('Returning the results as JSON')
-        return Response(text=json.dumps({'version': '1.0.0', 'matching': request.query_string, 'results': results}, default=str),
+        return Response(text=json.dumps({'version': '1.0.0', 'request_parameters': request.query_string, 'results': results}, default=str),
                 content_type='application/json', charset='utf-8')
     else:
         log.debug('Returning the results as CSV')
-        csvText = "# version: 1.0.0\n# matching: " + request.query_string +\
+        csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
             "\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
