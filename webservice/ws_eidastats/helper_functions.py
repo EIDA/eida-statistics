@@ -196,5 +196,9 @@ def check_request_parameters(request, one_network=True):
                 if all(x in param_value_dict[key] for x in ['month', 'year']):
                     raise BothMonthYear
 
+    # in case details not specified
+    if 'details' in accepted and 'details' not in param_value_dict:
+        param_value_dict['details'] = []
+
     log.debug('Final parameters: '+str(param_value_dict))
     return param_value_dict

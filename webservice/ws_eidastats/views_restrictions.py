@@ -29,14 +29,14 @@ def isRestricted(request, internalCall=False, datacenter=None, network=None):
     try:
         session = Session()
         sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy, Network.inverted_policy, Network.eas_group)
-        sqlreq = sqlreq.filter(Node.name == datacenter).filter(Network.name == network)
+        sqlreq = sqlreq.filter(Node.name == datacenter).filter(Network.name == network).first()
         session.close()
 
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
-    row = sqlreq.first()
+    row = sqlreq
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
     if any(x is None for x in [row.restriction_policy, row.inverted_policy]):
@@ -68,13 +68,13 @@ def node_restriction_policy(request):
 
     try:
         session = Session()
-        sqlreq = session.query(Node).filter(Node.name == request.params.get('datacenter'))
+        sqlreq = session.query(Node).filter(Node.name == request.params.get('datacenter')).first()
         session.close()
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
-    row = sqlreq.first()
+    row = sqlreq
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter parameter</p>", status_code=400)
 
@@ -104,13 +104,13 @@ def network_restriction_policy(request):
     try:
         session = Session()
         sqlreq = session.query(Node).join(Network).with_entities(Network.inverted_policy, Network.eas_group)
-        sqlreq = sqlreq.filter(Node.name == request.params.get('datacenter')).filter(Network.name == request.params.get('network'))
+        sqlreq = sqlreq.filter(Node.name == request.params.get('datacenter')).filter(Network.name == request.params.get('network')).first()
         session.close()
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
 
-    row = sqlreq.first()
+    row = sqlreq
     if not row:
         return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
 
