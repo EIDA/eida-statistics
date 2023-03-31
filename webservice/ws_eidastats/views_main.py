@@ -6,7 +6,7 @@ import json
 import re
 from ws_eidastats.model import Node, DataselectStat
 from ws_eidastats.helper_functions import get_nodes, check_authentication, check_request_parameters, log, Session
-from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoDatacenterAndNetwork, BothMonthYear
+from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoNodeAndNetwork, BothMonthYear
 from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import or_
 from sqlalchemy.sql import func, extract
@@ -70,7 +70,7 @@ def raw(request):
     log.info('Checked authentication')
 
     # check authorization
-    # different behavior depending on whether user is data center operator or not
+    # different behavior depending on whether user is node operator or not
     memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
@@ -84,7 +84,7 @@ def raw(request):
     for row in sqlreq:
         if row.eas_group in memberOf:
             operator = True
-            log.info('User is data center operator')
+            log.info('User is node operator')
             break
 
     log.info('Checked authorization')
@@ -103,8 +103,8 @@ def raw(request):
         return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
     except Mandatory:
         return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
-    except NoDatacenterAndNetwork:
-        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'datacenter' and 'network' parameters are required</p>", status_code=400)
+    except NoNodeAndNetwork:
+        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'node' and 'network' parameters are required</p>", status_code=400)
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1>", status_code=500)
@@ -115,11 +115,11 @@ def raw(request):
     if not operator:
         # if network is specified, check if network is open or restricted
         if 'network' in param_value_dict:
-            restricted = isRestricted(request, internalCall=True, datacenter=param_value_dict['datacenter'][0], network=param_value_dict['network'][0])
+            restricted = isRestricted(request, internalCall=True, node=param_value_dict['node'][0], network=param_value_dict['network'][0])
             if restricted.status_code == 500:
                 return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
             elif restricted.status_code == 400:
-                return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+                return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given node and network parameters</p>", status_code=400)
             # if network is restricted, check if user has access
             elif restricted.json['restricted'] == 'yes':
                 log.debug('Network is restricted. Checking if user has access')
@@ -143,8 +143,8 @@ def raw(request):
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-        if 'datacenter' in param_value_dict:
-            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'node' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['node']))
         if 'network' in param_value_dict:
             multiOR = or_(False)
             for net in param_value_dict['network']:
@@ -185,12 +185,12 @@ def raw(request):
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
 
-    # get results as dictionaries and add datacenter name
+    # get results as dictionaries and add node name
     log.debug('Getting the results')
     results = []
     for row in sqlreq:
         rowToDict = DataselectStat.to_dict(row)
-        rowToDict['datacenter'] = row.name
+        rowToDict['node'] = row.name
         results.append(rowToDict)
 
     # return json with metadata
@@ -226,7 +226,7 @@ def restricted(request):
     log.info('Checked authentication')
 
     # check authorization
-    # different behavior depending on whether user is data center operator or not
+    # different behavior depending on whether user is node operator or not
     memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
@@ -240,7 +240,7 @@ def restricted(request):
     for row in sqlreq:
         if row.eas_group in memberOf:
             operator = True
-            log.info('User is data center operator')
+            log.info('User is node operator')
             break
 
     log.info('Checked authorization')
@@ -270,19 +270,19 @@ def restricted(request):
 
     log.info('Checked parameters of request')
 
-    # if user is not operator and network is specified, check if either network is open or user has access to it at least in one data center
+    # if user is not operator and network is specified, check if either network is open or user has access to it at least in one node
     if not operator and 'network' in param_value_dict:
         access = False
         noEntry = True
-        datacenters = param_value_dict.get('datacenter')
-        # if no datacenter is specified, get all available datacenters from database
-        if datacenters is None:
+        nodes = param_value_dict.get('node')
+        # if no node is specified, get all available nodes from database
+        if nodes is None:
             try:
-                datacenters = get_nodes(request, internalCall=True).json['nodes']
+                nodes = get_nodes(request, internalCall=True).json['nodes']
             except Exception as e:
                 raise Exception(e)
-        for dc in datacenters:
-            restricted = isRestricted(request, internalCall=True, datacenter=dc, network=param_value_dict['network'][0])
+        for n in nodes:
+            restricted = isRestricted(request, internalCall=True, node=n, network=param_value_dict['network'][0])
             if restricted.status_code == 500:
                 return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
             if restricted.status_code == 400:
@@ -290,7 +290,7 @@ def restricted(request):
             else:
                 noEntry = False
             if restricted.json['restricted'] == 'no':
-                log.debug('Network is open at least in one datacenter')
+                log.debug('Network is open at least in one node')
                 access = True
                 break
             # if network is restricted, check if user has access
@@ -299,7 +299,7 @@ def restricted(request):
                 access = True
                 break
         if noEntry:
-            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given node and network parameters</p>", status_code=400)
         if not access:
             log.debug('Network is restricted and user has no access')
             return Response("<h1>403 Forbidden</h1><p>User has no access to the requested network</p>", status_code=403)
@@ -341,8 +341,8 @@ def restricted(request):
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-        if 'datacenter' in param_value_dict:
-            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'node' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['node']))
         if 'network' in param_value_dict:
             multiOR = or_(False)
             for net in param_value_dict['network']:
@@ -411,7 +411,7 @@ def restricted(request):
             rowToDict = DataselectStat.to_dict_for_human(row)
             rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
                                         str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
-            rowToDict['datacenter'] = row.name if 'level' in param_value_dict else '*'
+            rowToDict['node'] = row.name if 'level' in param_value_dict else '*'
             rowToDict['network'] = row.network if param_value_dict.get('level') in ['network', 'station', 'location', 'channel'] else '*'
             rowToDict['station'] = row.station if param_value_dict.get('level') in ['station', 'location', 'channel'] else '*'
             rowToDict['location'] = row.location if param_value_dict.get('level') in ['location', 'channel'] else '*'
@@ -427,7 +427,7 @@ def restricted(request):
     else:
         log.debug('Returning the results as CSV')
         csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
-            "\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+            "\ndate,node,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
             for field in res:
@@ -465,19 +465,19 @@ def public(request):
 
     log.info('Checked parameters of request')
 
-    # if network is specified, check if network is open at least in one data center or restricted in all data centers
+    # if network is specified, check if network is open at least in one node or restricted in all nodes
     if 'network' in param_value_dict:
         open = False
         noEntry = True
-        datacenters = param_value_dict.get('datacenter')
-        # if no datacenter is specified, get all available datacenters from database
-        if datacenters is None:
+        nodes = param_value_dict.get('node')
+        # if no node is specified, get all available nodes from database
+        if nodes is None:
             try:
-                datacenters = get_nodes(request, internalCall=True).json['nodes']
+                nodes = get_nodes(request, internalCall=True).json['nodes']
             except Exception as e:
                 raise Exception(e)
-        for dc in datacenters:
-            restricted = isRestricted(request, internalCall=True, datacenter=dc, network=param_value_dict['network'][0])
+        for n in nodes:
+            restricted = isRestricted(request, internalCall=True, node=n, network=param_value_dict['network'][0])
             if restricted.status_code == 500:
                 return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
             if restricted.status_code == 400:
@@ -485,11 +485,11 @@ def public(request):
             else:
                 noEntry = False
             if restricted.json['restricted'] == 'no':
-                log.debug('Network is open at least in one datacenter')
+                log.debug('Network is open at least in one node')
                 open = True
                 break
         if noEntry:
-            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given datacenter and network parameters</p>", status_code=400)
+            return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given node and network parameters</p>", status_code=400)
         if not open:
             log.debug('Network is restricted')
             return Response("<h1>401 Unauthorized</h1><p>No access to restricted networks for non-authenticated users<br>"+\
@@ -526,8 +526,8 @@ def public(request):
             sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
         if 'end' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-        if 'datacenter' in param_value_dict:
-            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['datacenter']))
+        if 'node' in param_value_dict:
+            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['node']))
         if 'network' in param_value_dict:
             sqlreq = sqlreq.filter(DataselectStat.network.in_(param_value_dict['network']))
         if 'country' in param_value_dict:
@@ -560,7 +560,7 @@ def public(request):
             rowToDict = DataselectStat.to_dict_for_human(row)
             rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
                                         str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
-            rowToDict['datacenter'] = row.name if 'level' in param_value_dict else '*'
+            rowToDict['node'] = row.name if 'level' in param_value_dict else '*'
             rowToDict['network'] = row.network if param_value_dict.get('level') == 'network' else '*'
             rowToDict['country'] = row.country if 'country' in param_value_dict['details'] else '*'
             rowToDict['station'] = '*'
@@ -576,7 +576,7 @@ def public(request):
     else:
         log.debug('Returning the results as CSV')
         csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
-            "\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+            "\ndate,node,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
             for field in res:

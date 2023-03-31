@@ -20,8 +20,8 @@ class NoNetwork(Exception):
     "Raised when network parameter must have been specified"
     pass
 
-class NoDatacenterAndNetwork(Exception):
-    "Raised when both datacenter and network parameters must have been specified"
+class NoNodeAndNetwork(Exception):
+    "Raised when both node and network parameters must have been specified"
     pass
 
 class Mandatory(Exception):
@@ -36,7 +36,7 @@ class BothMonthYear(Exception):
 @view_config(route_name='nodes', request_method='GET', openapi=True)
 def get_nodes(request, internalCall=False):
     """
-    Returns a list with the available datacenters
+    Returns a list with the available nodes
     """
 
     if internalCall:
@@ -99,7 +99,7 @@ def check_request_parameters(request, one_network=True):
     log.info('Entering check_request_parameters')
 
     # parameters that all methods accept
-    accepted = ['start', 'end', 'datacenter', 'network', 'country']
+    accepted = ['start', 'end', 'node', 'network', 'country']
     # parameters accepted by raw method
     if 'raw' in request.url:
         accepted += ['station', 'location', 'channel']
@@ -114,10 +114,10 @@ def check_request_parameters(request, one_network=True):
     # make start parameter mandatory
     if 'start' not in params:
         raise Mandatory
-    # if /raw method is used and user is not a data center operator, then both datacenter and network parameters must be specified
-    if 'raw' in request.url and one_network and any(x not in params for x in ['datacenter', 'network']):
-        raise NoDatacenterAndNetwork
-    # if /restricted method is used and user is not a data center operator and specifies any of station, channel, location parameters
+    # if /raw method is used and user is not a node operator, then both node and network parameters must be specified
+    if 'raw' in request.url and one_network and any(x not in params for x in ['node', 'network']):
+        raise NoNodeAndNetwork
+    # if /restricted method is used and user is not a node operator and specifies any of station, channel, location parameters
     # then network parameter must be specified
     if 'restricted' in request.url and one_network and any(x in params for x in ['station', 'channel', 'location']) and 'network' not in params:
         raise NoNetwork
@@ -146,12 +146,12 @@ def check_request_parameters(request, one_network=True):
         elif key == 'level':
             # level acceptable values depending on the method
             log.debug('Level: '+params.get(key))
-            if params.get(key) not in ['datacenter', 'network', 'station', 'location', 'channel']:
+            if params.get(key) not in ['node', 'network', 'station', 'location', 'channel']:
                 raise ValueError(key)
-            elif 'public' in request.url and params.get(key) not in ['datacenter', 'network']:
+            elif 'public' in request.url and params.get(key) not in ['node', 'network']:
                 raise ValueError(key)
             else:
-                # if /restricted method is used and user is not a data center operator and level is below network
+                # if /restricted method is used and user is not a node operator and level is below network
                 # then network parameter must be specified
                 if 'restricted' in request.url and one_network and params.get(key) in ['station', 'location', 'channel'] and 'network' not in params:
                     raise NoNetwork
@@ -159,13 +159,13 @@ def check_request_parameters(request, one_network=True):
                     param_value_dict[key] = params.get(key)
         # parameters that can have multiple values
         else:
-            # if user is not a data center operator only one network can be specified at a time
+            # if user is not a node operator only one network can be specified at a time
             if key == 'network' and one_network:
                 log.debug('Network: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
-            # if /raw method is used and user is not a data center operator and one of the below is true, then only one datacenter can be specified
-            elif key == 'datacenter' and one_network and 'raw' in request.url:
-                log.debug('Datacenter: '+params.get(key))
+            # if /raw method is used and user is not a node operator and one of the below is true, then only one node can be specified
+            elif key == 'node' and one_network and 'raw' in request.url:
+                log.debug('Node: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
             else:
                 # distinguish values given at each parameter
@@ -179,13 +179,13 @@ def check_request_parameters(request, one_network=True):
                 param_value_dict[key] = [s.replace('*', '%') for s in param_value_dict[key]]
                 param_value_dict[key] = [s.replace('?', '_') for s in param_value_dict[key]]
                 log.debug('After wildcards: '+str(param_value_dict[key]))
-            # check if datacenter exists
-            elif key == 'datacenter':
+            # check if node exists
+            elif key == 'node':
                 try:
                     acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']
                 except Exception as e:
                     raise Exception(e)
-                log.info('Got available datacenters from database')
+                log.info('Got available nodes from database')
                 if any(x not in acceptable_nodes for x in param_value_dict[key]):
                     raise ValueError(key)
             # details parameter

@@ -14,7 +14,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for programs. Authentication required. Different behavior depending on whether the user is data center operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
+        Get statistics meant to be convenient for programs. Authentication required. Different behavior depending on whether the user is node operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
       parameters:
         - in: query
           name: start
@@ -31,16 +31,16 @@ paths:
             type: string
             example: 2023-01
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation. Comma separated list is possible only if the user is data center operator. For non-operators, a single data center must be specified.
+            Node member of EIDA federation. Comma separated list is possible only if the user is node operator. For non-operators, a single node must be specified.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is data center operator. For non-operators, a single network must be specified.
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is node operator. For non-operators, a single network must be specified.
           schema:
             type: string
             example: Z32015,FR
@@ -119,9 +119,9 @@ paths:
             type: string
             example: 2023-01
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation. Comma separated list is possible.
+            Node member of EIDA federation. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
@@ -142,11 +142,11 @@ paths:
         - in: query
           name: level
           description: |
-            Level of results. Can be one of 'datacenter', 'network' or empty. Empty means accross all EIDA.
+            Level of results. Can be one of 'node', 'network' or empty. Empty means accross all EIDA.
           schema:
             type: string
             enum:
-              - datacenter
+              - node
               - network
         - in: query
           name: details
@@ -171,7 +171,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&node=RESIF,NOA&country=GR,FR&level=node&details=country\ndate,node,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -187,7 +187,7 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for humans. Authentication required. Different behavior depending on whether the user is data center operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
+        Get statistics meant to be convenient for humans. Authentication required. Different behavior depending on whether the user is node operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
       parameters:
         - in: query
           name: start
@@ -204,16 +204,16 @@ paths:
             type: string
             example: 2023-01
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation. Comma separated list is possible.
+            Node member of EIDA federation. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is data center operator. For non-operators, a single network must be specified whenever any of the network, station, location, channel parameters is specified.
+            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is node operator. For non-operators, a single network must be specified whenever any of the network, station, location, channel parameters is specified.
           schema:
             type: string
             example: Z32015,FR
@@ -248,11 +248,11 @@ paths:
         - in: query
           name: level
           description: |
-            Level of results. Can be one of 'datacenter', 'network', 'station', 'location', 'channel' or empty. Empty means accross all EIDA.
+            Level of results. Can be one of 'node', 'network', 'station', 'location', 'channel' or empty. Empty means accross all EIDA.
           schema:
             type: string
             enum:
-              - datacenter
+              - node
               - network
               - station
               - location
@@ -287,7 +287,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&node=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\ndate,node,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -371,12 +371,12 @@ paths:
       tags:
         - Network restrictions
       description: |
-        View the default restriction policy of a data center.
+        View the default restriction policy of a node.
       parameters:
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation.
+            Node member of EIDA federation.
           required: true
           schema:
             type: string
@@ -401,12 +401,12 @@ paths:
       tags:
         - Network restrictions
       description: |
-        View the state on whether network agrees with its data center restriction policy, as well as EAS network group name, if any.
+        View the state on whether network agrees with its node restriction policy, as well as EAS network group name, if any.
       parameters:
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation.
+            Node member of EIDA federation.
           required: true
           schema:
             type: string
@@ -477,9 +477,9 @@ paths:
         Returns if a given network is restricted or not. It also returns EAS group of network. Meant for internal use.
       parameters:
         - in: query
-          name: datacenter
+          name: node
           description: |
-            Data center member of EIDA federation.
+            Node member of EIDA federation.
           required: true
           schema:
             type: string
@@ -521,7 +521,7 @@ components:
           example: 1.0.0
         request_parameters:
           type: string
-          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&sta=STA*&country=GR,FR'
+          example: 'start=2021-01&end=2021-12&node=RESIF&network=NL&sta=STA*&country=GR,FR'
         results:
           type: array
           items:
@@ -532,7 +532,7 @@ components:
         month:
           type: string
           example: 2022-11
-        datacenter:
+        node:
           type: string
           example: RESIF
         network:
@@ -572,7 +572,7 @@ components:
           example: 1.0.0
         request_parameters:
           type: string
-          example: 'start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country'
+          example: 'start=2021-01&end=2021-12&node=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country'
         results:
           type: array
           items:
@@ -583,7 +583,7 @@ components:
         date:
           type: string
           example: '*'
-        datacenter:
+        node:
           type: string
           example: RESIF
         network:
@@ -623,7 +623,7 @@ components:
           example: 1.0.0
         request_parameters:
           type: string
-          example: 'start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country'
+          example: 'start=2021-01&end=2021-12&node=RESIF,NOA&country=GR,FR&level=node&details=country'
         results:
           type: array
           items:
@@ -634,7 +634,7 @@ components:
         date:
           type: string
           example: '*'
-        datacenter:
+        node:
           type: string
           example: RESIF
         network:
