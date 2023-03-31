@@ -4,6 +4,9 @@ from pyramid.view import notfound_view_config
 import os
 import json
 import re
+import python_hll
+from python_hll.util import NumberUtil
+from python_hll.hll import HLL
 from ws_eidastats.model import Node, DataselectStat
 from ws_eidastats.helper_functions import get_nodes, check_authentication, check_request_parameters, log, Session
 from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoNodeAndNetwork, BothMonthYear
@@ -333,7 +336,7 @@ def restricted(request):
         # fields to be summed up
         sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),
                     func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),
-                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
+                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('hll_union_agg(dataselect_stats.clients)').label('clients'))
 
         # where clause
         log.debug('Making the WHERE clause')
@@ -417,6 +420,7 @@ def restricted(request):
             rowToDict['location'] = row.location if param_value_dict.get('level') in ['location', 'channel'] else '*'
             rowToDict['channel'] = row.channel if param_value_dict.get('level') == 'channel' else '*'
             rowToDict['country'] = row.country if 'country' in param_value_dict['details'] else '*'
+            rowToDict['clients'] = HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))).cardinality()
             results.append(rowToDict)
 
     # return json or csv with metadata
@@ -518,7 +522,7 @@ def public(request):
         # fields to be summed up
         sqlreq = sqlreq.add_columns(func.sum(DataselectStat.nb_reqs).label('nb_reqs'),
                     func.sum(DataselectStat.nb_successful_reqs).label('nb_successful_reqs'),
-                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('#hll_union_agg(dataselect_stats.clients)').label('clients'))
+                    func.sum(DataselectStat.bytes).label('bytes'), literal_column('hll_union_agg(dataselect_stats.clients)').label('clients'))
 
         # where clause
         log.debug('Making the WHERE clause')
@@ -555,9 +559,27 @@ def public(request):
     # assign '*' at non-selected columns
     log.debug('Getting the results')
     results = []
+    # make a result item for restricted networks
+    results.append({'date':'*', 'node':'Other', 'network':'Other', 'country':'*', 'station':'*', 'location':'*', 'channel':'*',
+        'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)})
+    atLeastOneRestricted = False
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
+            # if below datacenter level, check for restricted networks and group them in the restricted networks result item
+            if param_value_dict.get('level') == 'network':
+                restricted = isRestricted(request, internalCall=True, node=row.name, network=row.network)
+                if restricted.status_code != 200:
+                    return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+                elif restricted.json['restricted'] == 'yes':
+                    log.debug('Grouping network as restricted in results')
+                    results[0]['bytes'] += int(row.bytes)
+                    results[0]['nb_reqs'] += row.nb_reqs
+                    results[0]['nb_successful_reqs'] += row.nb_successful_reqs
+                    results[0]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
+                    atLeastOneRestricted = True
+                    continue
+
             rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
                                         str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
             rowToDict['node'] = row.name if 'level' in param_value_dict else '*'
@@ -566,7 +588,14 @@ def public(request):
             rowToDict['station'] = '*'
             rowToDict['location'] = '*'
             rowToDict['channel'] = '*'
+            rowToDict['clients'] = HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))).cardinality()
             results.append(rowToDict)
+
+    # remove restricted networks result item if no restricted network was returned
+    if not atLeastOneRestricted:
+        results.pop(0)
+    else:
+        results[0]['clients'] = results[0]['clients'].cardinality()
 
     # return json or csv with metadata
     if param_value_dict.get('format') == 'json':

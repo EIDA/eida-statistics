@@ -52,12 +52,13 @@ class DataselectStat(Base):
                                            ["networks.node_id", "networks.name"]), {})
 
     def to_dict(self):
-        return {'month': str(self.date)[:-3], 'node': '', 'network': self.network, 'station': self.station, 'location': self.location, 'channel': self.channel,
-        'country': self.country, 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
+        return {'month': str(self.date)[:-3], 'node': '', 'network': self.network, 'station': self.station, 'location': self.location,
+            'channel': self.channel, 'country': self.country, 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs,
+            'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
 
     def to_dict_for_human(self):
-        return {'date': '', 'node': '', 'network': '', 'station': '', 'location': '', 'channel': '',
-        'country': '', 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': int(self.clients)}
+        return {'date': '', 'node': '', 'network': '', 'station': '', 'location': '', 'channel': '', 'country': '',
+            'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': ''}
 
 
 class Network(Base):

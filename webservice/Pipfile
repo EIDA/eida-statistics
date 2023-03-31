@@ -17,6 +17,9 @@ psycopg = "*"
 pyramid-openapi3 = "*"
 requests = "*"
 python-gnupg = "*"
+openapi-core = "==0.16.5"
+numpy = "==1.23.0"
+python-hll = "*"
 
 [dev-packages]
 pytest = "*"
