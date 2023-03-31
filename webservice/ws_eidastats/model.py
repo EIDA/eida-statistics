@@ -56,7 +56,7 @@ class DataselectStat(Base):
         'country': self.country, 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': self.clients}
 
     def to_dict_for_human(self):
-        return {'month/year': '', 'datacenter': '', 'network': '', 'station': '', 'location': '', 'channel': '',
+        return {'date': '', 'datacenter': '', 'network': '', 'station': '', 'location': '', 'channel': '',
         'country': '', 'bytes': int(self.bytes), 'nb_reqs': self.nb_reqs, 'nb_successful_reqs': self.nb_successful_reqs, 'clients': int(self.clients)}
 
 

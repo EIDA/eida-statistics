@@ -9,7 +9,7 @@ from ws_eidastats.helper_functions import get_nodes, check_authentication, check
 from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoDatacenterAndNetwork, BothMonthYear
 from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import or_
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, extract
 from sqlalchemy.sql.expression import literal_column
 
 
@@ -325,6 +325,8 @@ def restricted(request):
             sqlreq = sqlreq.add_columns(DataselectStat.channel)
         if 'month' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.date)
+        elif 'year' in param_value_dict['details']:
+            sqlreq = sqlreq.add_columns(extract('year', DataselectStat.date).label('year'))
         if 'country' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.country)
 
@@ -390,6 +392,8 @@ def restricted(request):
             sqlreq = sqlreq.group_by(DataselectStat.channel)
         if 'month' in param_value_dict['details']:
             sqlreq = sqlreq.group_by(DataselectStat.date)
+        elif 'year' in param_value_dict['details']:
+            sqlreq = sqlreq.group_by('year')
         if 'country' in param_value_dict['details']:
             sqlreq = sqlreq.group_by(DataselectStat.country)
         session.close()
@@ -405,7 +409,8 @@ def restricted(request):
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
-            rowToDict['month/year'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else '*'
+            rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
+                                        str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
             rowToDict['datacenter'] = row.name if 'level' in param_value_dict else '*'
             rowToDict['network'] = row.network if param_value_dict.get('level') in ['network', 'station', 'location', 'channel'] else '*'
             rowToDict['station'] = row.station if param_value_dict.get('level') in ['station', 'location', 'channel'] else '*'
@@ -422,7 +427,7 @@ def restricted(request):
     else:
         log.debug('Returning the results as CSV')
         csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
-            "\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+            "\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
             for field in res:
@@ -505,6 +510,8 @@ def public(request):
             sqlreq = sqlreq.add_columns(DataselectStat.network)
         if 'month' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.date)
+        elif 'year' in param_value_dict['details']:
+            sqlreq = sqlreq.add_columns(extract('year', DataselectStat.date).label('year'))
         if 'country' in param_value_dict['details']:
             sqlreq = sqlreq.add_columns(DataselectStat.country)
 
@@ -534,6 +541,8 @@ def public(request):
             sqlreq = sqlreq.group_by(DataselectStat.network)
         if 'month' in param_value_dict['details']:
             sqlreq = sqlreq.group_by(DataselectStat.date)
+        elif 'year' in param_value_dict['details']:
+            sqlreq = sqlreq.group_by('year')
         if 'country' in param_value_dict['details']:
             sqlreq = sqlreq.group_by(DataselectStat.country)
         session.close()
@@ -549,7 +558,8 @@ def public(request):
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
-            rowToDict['month/year'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else '*'
+            rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
+                                        str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
             rowToDict['datacenter'] = row.name if 'level' in param_value_dict else '*'
             rowToDict['network'] = row.network if param_value_dict.get('level') == 'network' else '*'
             rowToDict['country'] = row.country if 'country' in param_value_dict['details'] else '*'
@@ -566,7 +576,7 @@ def public(request):
     else:
         log.debug('Returning the results as CSV')
         csvText = "# version: 1.0.0\n# request_parameters: " + request.query_string +\
-            "\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
+            "\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients"
         for res in results:
             csvText += '\n'
             for field in res:

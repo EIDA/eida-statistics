@@ -151,7 +151,7 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross month/year and country parameters.
+            Group results by one or more parameters of date and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
           schema:
             type: string
         - in: query
@@ -171,7 +171,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF,NOA&country=GR,FR&level=datacenter&details=country\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,*,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -260,7 +260,7 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross month/year and country parameters.
+            Group results by one or more parameters of date and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
           schema:
             type: string
         - in: query
@@ -287,7 +287,7 @@ paths:
             text/csv:
               schema:
                 type: string
-                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\nmonth/year,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
+                example: "# version: 1.0.0\n# request_parameters: start=2021-01&end=2021-12&datacenter=RESIF&network=NL&station=STA*&country=GR,FR&level=network&details=country\ndate,datacenter,network,station,location,channel,country,bytes,nb_reqs,nb_successful_reqs,clients\n*,RESIF,NL,*,*,*,GR,56,40,561234,34\n..."
             application/json:
               schema:
                 type: object
@@ -580,7 +580,7 @@ components:
     HumanResponseResult:
       type: object
       properties:
-        month/year:
+        date:
           type: string
           example: '*'
         datacenter:
@@ -631,7 +631,7 @@ components:
     PublicResponseResult:
       type: object
       properties:
-        month/year:
+        date:
           type: string
           example: '*'
         datacenter:
