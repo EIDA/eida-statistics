@@ -410,27 +410,28 @@ def restricted(request):
     log.debug('Getting the results')
     results = []
     # make a result item for networks that user cannot access
+    atLeastOneNoAccess = False
     if not operator:
         results.append({'date':'*', 'node':'Other', 'network':'Other', 'country':'*', 'station':'*', 'location':'*', 'channel':'*',
             'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)})
-        atLeastOneNoAccess = False
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
-            # if below datacenter level, check for networks that user has no access and group them in the no-access networks result item
-            if param_value_dict.get('level') in ['network', 'station', 'location', 'channel']:
-                # first check if network is open
-                restricted = isRestricted(request, internalCall=True, node=row.name, network=row.network)
-                if restricted.status_code != 200:
-                    return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-                elif restricted.json['restricted'] == 'yes' and restricted.json['group'] not in memberOf:
-                    log.debug('Grouping network as non-accessable in results')
-                    results[0]['bytes'] += int(row.bytes)
-                    results[0]['nb_reqs'] += row.nb_reqs
-                    results[0]['nb_successful_reqs'] += row.nb_successful_reqs
-                    results[0]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
-                    atLeastOneNoAccess = True
-                    continue
+            if not operator:
+                # if below datacenter level, check for networks that user has no access and group them in the no-access networks result item
+                if param_value_dict.get('level') in ['network', 'station', 'location', 'channel']:
+                    # first check if network is open
+                    restricted = isRestricted(request, internalCall=True, node=row.name, network=row.network)
+                    if restricted.status_code != 200:
+                        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+                    elif restricted.json['restricted'] == 'yes' and restricted.json['group'] not in memberOf:
+                        log.debug('Grouping network as non-accessable in results')
+                        results[0]['bytes'] += int(row.bytes)
+                        results[0]['nb_reqs'] += row.nb_reqs
+                        results[0]['nb_successful_reqs'] += row.nb_successful_reqs
+                        results[0]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
+                        atLeastOneNoAccess = True
+                        continue
 
             rowToDict = DataselectStat.to_dict_for_human(row)
             rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
