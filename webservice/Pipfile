@@ -24,6 +24,7 @@ python-hll = "*"
 [dev-packages]
 pytest = "*"
 pytest-postgresql = "*"
+behave = "*"
 
 [requires]
 python_version = "3.9"
