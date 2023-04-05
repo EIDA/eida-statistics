@@ -152,7 +152,8 @@ paths:
         - in: query
           name: level
           description: |
-            Level of details for presenting the results. Can be one of 'node', 'network' or empty. Empty means to present statistics unified accross all EIDA nodes.
+            Detail level of the results. In order of details level, car be empty, 'node' or 'network', Empty means accross all EIDA.<br>
+            Every parameter more precise than the specified level will appear with a '*' in the resuls.
           schema:
             type: string
             enum:
@@ -161,7 +162,7 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>
+            Group results by one or more parameters, month or year and country.<br>
             E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>
             E.g. <i>details=year</i> to see results separately for each year between <i>start</i> and <i>end</i>. Note that the specified time selection parameters are taken in account.<br>
             E.g. <i>details=country</i> to see results separately for each country that matches given countries filter or for each country in the database if no country filter is specified.<br>
@@ -243,14 +244,14 @@ paths:
         - in: query
           name: location
           description: |
-            Wildcard (* or ?) and comma separated list is possible. If a location is specified, at least a valid network needs to be specified also.
+            Location code. Wildcard (* or ?) and comma separated list is possible. If a location is specified, at least a valid network needs to be specified also.
           schema:
             type: string
             example: '00'
         - in: query
           name: channel
           description: |
-            Wildcard (* or ?) and comma separated list is possible. If a channel is specified, at least a valid network needs to be specified also.
+            Channel code. Wildcard (* or ?) and comma separated list is possible. If a channel is specified, at least a valid network needs to be specified also.
           schema:
             type: string
             example: HHZ
@@ -264,7 +265,9 @@ paths:
         - in: query
           name: level
           description: |
-            Level of results. Can be one of 'node', 'network', 'station', 'location', 'channel' or empty. Empty means accross all EIDA.
+            Detail level of the results. In order of details level, car be empty, 'node', 'network', 'station', 'location', 'channel'. Empty means accross all EIDA.<br>
+            Every parameter more precise than the specified level will appear with a '*' in the resuls.
+
           schema:
             type: string
             enum:
@@ -276,7 +279,7 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>
+            Group results by one or more parameters, month or year and country.<br>
             E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>
             E.g. <i>details=year</i> to see results separately for each year between <i>start</i> and <i>end</i>. Note that the specified time selection parameters are taken in account.<br>
             E.g. <i>details=country</i> to see results separately for each country that matches given countries filter or for each country in the database if no country filter is specified.<br>
@@ -322,10 +325,11 @@ paths:
           description: Method not allowed
         '500':
           description: Internal server error
+
   /submit:
     put:
       tags:
-        - Statistics
+        - Submitting statistics
       summary: |
         Append a statistic aggregation. If any value exists on the server side, submitted values will be appended. Method reserved to nodes operators.
       operationId: updateStat
