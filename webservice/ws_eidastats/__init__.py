@@ -24,7 +24,7 @@ def main(global_config, **settings):
     config = Configurator(settings=settings)
     config.include("pyramid_openapi3")
     config.pyramid_openapi3_spec(openapi_doc.name, route=os.path.join(prefix, 'openapi.yaml'))
-    config.pyramid_openapi3_add_explorer(route=prefix+"/")
+    config.pyramid_openapi3_add_explorer(route=prefix+"/", proto_port=(os.getenv('EIDASTATS_API_PROTO', 'http'), 6543))
     config.registry.settings["pyramid_openapi3.enable_request_validation"] = False
     config.registry.settings["pyramid_openapi3.enable_response_validation"] = False
     config.add_route('health', prefix+'/_health')
