@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 from behave import when, then, given
 import requests
-import re
-from datetime import datetime
 
 @given(u'the request parameter {param} set to {value}')
 def set_parameters(context, param, value):
     context.request_parameters[param] = value
 
-@when(u'doing a {method} request to endpoint {endpoint}')
-def do_request(context, method, endpoint):
-    url_params = "?"
+@when(u'doing a {method} request to featured endpoint')
+def do_request(context, method):
+    url_params = ""
     for k,v in context.request_parameters.items():
         url_params += f"{k}={v}&"
     url_params = url_params[:-1]
     if method.upper() == 'GET':
-        context.request_result = requests.get(context.baseurl+url_params)
+        context.request_result = requests.get(f"{context.baseurl}?{url_params}")
 
 @then(u'request result is {rc}')
 def request_result(context, rc):
