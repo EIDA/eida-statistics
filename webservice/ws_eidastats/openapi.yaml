@@ -14,7 +14,11 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for programs. Authentication required. Different behavior depending on whether the user is node operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
+        Get raw statistics in a format meant for computer programs.<br>
+        Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
+        Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
+        Statistics for restricted networks are available only if user is properly authorized for each specific network.
+        Restricted statistics that user is not authorized to get are presented in an anonymized fashion with label "Other".
       parameters:
         - in: query
           name: start
@@ -33,47 +37,51 @@ paths:
         - in: query
           name: node
           description: |
-            Node member of EIDA federation. Comma separated list is possible only if the user is node operator. For non-operators, a single node must be specified.
+            Filter the results by node <a href="https://www.orfeus-eu.org/data/eida/nodes/">member of EIDA</a>.<br>
+            Comma separated list is possible only if the user's token maps to a node operator. For non-operators, a single node must be specified.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is node operator. For non-operators, a single network must be specified.
+            Filter the results by FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE).<br>
+            If the user is not allowed to get statistics for this network, the response is 403, unauthorized.<br>
+            Comma separated list is possible only if the user's token maps to a node operator. For non-operators, a single network must be specified.
           schema:
             type: string
             example: Z32015,FR
         - in: query
           name: station
           description: |
-            FDSN extended station code. Comma separated list is possible.
+            Station code. Comma separated list is possible.
           schema:
             type: string
             example: 'A*'
         - in: query
           name: location
           description: |
-            FDSN extended location code. Comma separated list is possible.
+            Location code. Comma separated list is possible.
           schema:
             type: string
             example: '00'
         - in: query
           name: channel
           description: |
-            FDSN extended channel code. Comma separated list is possible.
+            Channel code. Comma separated list is possible.
           schema:
             type: string
             example: HHZ
         - in: query
           name: country
           description: |
-            Country code. Comma separated list is possible.
+            Filter on country code as <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3155 alpha-2 format</a>. Comma separated list is possible.
           schema:
             type: string
             example: FR,GR
       requestBody:
-        description: A file that contains the EIDA authentication system token
+        description: |
+          A file containing the <a href="https://geofon.gfz-potsdam.de/eas/">EIDA authentication system</a> token.
         content:
           application/octet-stream:
             schema:
@@ -102,7 +110,9 @@ paths:
       tags:
         - Statistics
       description: |
-        Get public statistics meant to be convenient for humans. No authentication required. Statistics for restricted networks are not available.
+        Get public statistics. No authentication required.<br>
+        Statistics for restricted networks are anonymized and presented with the label "Other".<br>
+        This method gives access to statistics with the precision level of network or node. To get more specific statistics (for station, location or channel), see the POST /dataselect/restricted method.
       parameters:
         - in: query
           name: start
@@ -121,7 +131,7 @@ paths:
         - in: query
           name: node
           description: |
-            Node member of EIDA federation. Comma separated list is possible.
+            Filter the results by node <a href="https://www.orfeus-eu.org/data/eida/nodes/">member of EIDA</a>. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
@@ -135,14 +145,14 @@ paths:
         - in: query
           name: country
           description: |
-            Country code. Comma separated list is possible.
+            Filter on country code as <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3155 alpha-2 format</a>. Comma separated list is possible.
           schema:
             type: string
             example: FR,GR
         - in: query
           name: level
           description: |
-            Level of results. Can be one of 'node', 'network' or empty. Empty means accross all EIDA.
+            Level of details for presenting the results. Can be one of 'node', 'network' or empty. Empty means to present statistics unified accross all EIDA nodes.
           schema:
             type: string
             enum:
@@ -151,7 +161,11 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
+            Group results by one or more parameters of month/year and country.<br>
+            E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>
+            E.g. <i>details=year</i> to see results separately for each year between <i>start</i> and <i>end</i>. Note that the specified time selection parameters are taken in account.<br>
+            E.g. <i>details=country</i> to see results separately for each country that matches given countries filter or for each country in the database if no country filter is specified.<br>
+            E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
           schema:
             type: string
         - in: query
@@ -187,7 +201,8 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics meant to be convenient for humans. Authentication required. Different behavior depending on whether the user is node operator or not. Statistics for restricted networks are available only if user is properly authorized for each specific network.
+        Get statistics, public and restricted. Authentication required.<br>
+        Depending on the token's groups, the behavior can vary ; if the user is a node operator, it is possible to filter on multiple networks with the <i>network</i> parameter.
       parameters:
         - in: query
           name: start
@@ -206,42 +221,43 @@ paths:
         - in: query
           name: node
           description: |
-            Node member of EIDA federation. Comma separated list is possible.
+            Filter the results by node <a href="https://www.orfeus-eu.org/data/eida/nodes/">member of EIDA</a>. Comma separated list is possible.
           schema:
             type: string
             example: RESIF,NOA
         - in: query
           name: network
           description: |
-            FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is node operator. For non-operators, a single network must be specified whenever any of the network, station, location, channel parameters is specified.
+            Filter on network code. Format is FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE). Comma separated list is possible only if the user is a node operator.<br>
+            For non-operators, a single network must be specified whenever any of the network, station, location, channel level is specified.
           schema:
             type: string
             example: Z32015,FR
         - in: query
           name: station
           description: |
-            FDSN extended station code. Comma separated list is possible.
+            Station code. Wildcard (* or ?) and comma separated list is possible. If a station is specified, the network must also be specified
           schema:
             type: string
             example: 'A*'
         - in: query
           name: location
           description: |
-            FDSN extended location code. Comma separated list is possible.
+            Wildcard (* or ?) and comma separated list is possible. If a location is specified, at least a valid network needs to be specified also.
           schema:
             type: string
             example: '00'
         - in: query
           name: channel
           description: |
-            FDSN extended channel code. Comma separated list is possible.
+            Wildcard (* or ?) and comma separated list is possible. If a channel is specified, at least a valid network needs to be specified also.
           schema:
             type: string
             example: HHZ
         - in: query
           name: country
           description: |
-            Country code. Comma separated list is possible.
+            Filter on country code as <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3155 alpha-2 format</a>. Comma separated list is possible.
           schema:
             type: string
             example: FR,GR
@@ -260,7 +276,11 @@ paths:
         - in: query
           name: details
           description: |
-            Group results by one or more parameters of month/year and country.<br>E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>E.g. <i>details=country</i> to see results separately for each country that matches given countries in the corresponding parameter or for each country in the database if no country specified.<br> E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
+            Group results by one or more parameters of month/year and country.<br>
+            E.g. <i>details=month</i> to see results separately for each month between <i>start</i> and <i>end</i>.<br>
+            E.g. <i>details=year</i> to see results separately for each year between <i>start</i> and <i>end</i>. Note that the specified time selection parameters are taken in account.<br>
+            E.g. <i>details=country</i> to see results separately for each country that matches given countries filter or for each country in the database if no country filter is specified.<br>
+            E.g. <i>details=month,country</i> to see results separately for each specific month <b>and</b> for each specific country.<br> If not specified, results are aggregated in total accross date and country parameters.
           schema:
             type: string
         - in: query
@@ -307,7 +327,7 @@ paths:
       tags:
         - Statistics
       summary: |
-        Append a statistic aggregation. If any value exists on the server side, submitted values will be appended.
+        Append a statistic aggregation. If any value exists on the server side, submitted values will be appended. Method reserved to nodes operators.
       operationId: updateStat
       requestBody:
         description: An aggregation file as created by the aggregator, JSON gzipped.
@@ -341,7 +361,7 @@ paths:
       summary: Submit a new statistic aggregation
       operationId: addStat
       requestBody:
-        description: Submit a statistic generated by the aggregator. If any value exists, it will be overwritten.
+        description: Submit a statistic generated by the aggregator. If any value exists, it will be overwritten. Methed reserved to node operators.
         content:
           application/json:
             schema:
@@ -466,7 +486,7 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: [RESIF,NOA,GEOFON]
+                    example: [RESIF,NOA]
         '500':
           description: Internal server error
   /_isRestricted:
