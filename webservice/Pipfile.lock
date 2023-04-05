@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8db3f09dfc4009b9013a775366754254b4daca4d71fd804472e648f869955dbe"
+            "sha256": "f2872a92cdc754935ac2848e7a94c1e595c8088cfe0c5e3c361208712765a6e4"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -435,11 +435,11 @@
         },
         "openapi-core": {
             "hashes": [
-                "sha256:527527b125b408983202a0de2003316ad6742b37db60fff7bac94ec56190a92b",
-                "sha256:adc56b05d48e80778d13b9e717efd243554b1dfb1a765d1d0774b8dbb9bbef7d"
+                "sha256:561b7e2b37b336e9c62d4634b9059d12d9bb2e1859062a39d3a0fa6afc8c9de6",
+                "sha256:c61175ba12987705c93d1df3dbcba4f84f9450057142cca7dc234aa03e2a59db"
             ],
             "index": "pypi",
-            "version": "==0.16.5"
+            "version": "==0.17.1"
         },
         "openapi-schema-validator": {
             "hashes": [
@@ -774,7 +774,7 @@
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
                 "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
             "version": "==1.16.0"
         },
         "soupsieve": {
@@ -884,7 +884,7 @@
                 "sha256:73aae30359291c14fa3b956f8b5ca31960e420c28c1bec002547fb04928cf89b",
                 "sha256:b64ef5141be559cfade448f044fa45c2260351edcb6a8ef6b7e00c7dcef0c323"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
             "version": "==1.8.7"
         },
         "webtest": {
@@ -1008,7 +1008,7 @@
                 "sha256:20b43c660e48ed47f433bce5873a2a3d4b9b6a7ba47bd7f7d2a7cec4bec5551f",
                 "sha256:c148e88436bd54dab16484108e882be3367f44952c649c9cd6b82a7370b650cb"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1'",
             "version": "==0.6.0"
         },
         "pluggy": {
@@ -1076,7 +1076,7 @@
                 "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926",
                 "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
             "version": "==1.16.0"
         },
         "tomli": {
