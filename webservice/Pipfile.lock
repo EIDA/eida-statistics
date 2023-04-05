@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "22bf8363847c27cabda796877ee8e6a7a5847375b08828259c9c48513e113872"
+            "sha256": "8db3f09dfc4009b9013a775366754254b4daca4d71fd804472e648f869955dbe"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -624,12 +624,8 @@
             "version": "==2.0.1"
         },
         "pyramid-openapi3": {
-            "hashes": [
-                "sha256:d79c7994eb7c94df65c937c19603f0f780a8112e0e144577f75832aa0cae67b1",
-                "sha256:f1bb0d0760664db0a498faa7189d6af0f8ffe5e2ab963c491a2ff840bf6eb6e7"
-            ],
-            "index": "pypi",
-            "version": "==0.16.0"
+            "git": "https://github.com/vpet98/pyramid_openapi3",
+            "ref": "aca022ab7caaac989593919b0cd07c97fdb4d094"
         },
         "pyrsistent": {
             "hashes": [

@@ -14,12 +14,12 @@ datetime = "*"
 webtest = "*"
 pytest-postgresql = "*"
 psycopg = "*"
-pyramid-openapi3 = "*"
 requests = "*"
 python-gnupg = "*"
 openapi-core = "==0.16.5"
 numpy = "==1.23.0"
 python-hll = "*"
+pyramid-openapi3 = {git = "https://github.com/vpet98/pyramid_openapi3"}
 
 [dev-packages]
 pytest = "*"
