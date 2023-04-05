@@ -19,6 +19,14 @@ Database backend:
 Webservice frontend :
     
     FLASK_ENV=development FLASK_APP=app.py DBURI=postgresql://postgres:password@localhost:5432/postgres flask run
+    
+## API validation with behaviour tests
+
+    pip install behave
+    BASEURL=http://ws-staging.resif.fr/eidaws/statistics/1 behave behave_tests
+    
+The BASEURL environment can be set to the webservice instance to test.
+
 
 ## Database requirements
 
