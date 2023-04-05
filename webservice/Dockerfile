@@ -1,5 +1,5 @@
 FROM python:3.9-slim
-RUN apt-get update && apt-get upgrade -y && apt-get install  -y --no-install-recommends libpq-dev gcc libc6-dev gpg
+RUN apt-get update && apt-get upgrade -y && apt-get install  -y --no-install-recommends libpq-dev gcc libc6-dev gpg git
 RUN pip install --no-cache-dir gunicorn
 WORKDIR /app
 COPY requirements.txt .
