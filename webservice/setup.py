@@ -18,6 +18,7 @@ dev_requires = [
 
 setup(
     name='ws_eidastats',
+    packages=['ws_eidastats'],
     install_requires=requires,
     extras_require={
         'dev': dev_requires,
