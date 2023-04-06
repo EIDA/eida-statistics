@@ -202,7 +202,9 @@ paths:
       tags:
         - Statistics
       description: |
-        Get statistics, public and restricted. Authentication required.<br>
+        Get statistics, public and restricted.<br>
+        Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
+        Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
         Depending on the token's groups, the behavior can vary ; if the user is a node operator, it is possible to filter on multiple networks with the <i>network</i> parameter.
       parameters:
         - in: query
