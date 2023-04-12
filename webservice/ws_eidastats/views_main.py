@@ -451,6 +451,10 @@ def restricted(request):
     else:
         results[0]['clients'] = results[0]['clients'].cardinality()
 
+    # sort results by date
+    if 'details' in param_value_dict and any(x in param_value_dict['details'] for x in ['month', 'year']):
+        results = sorted(results, key=lambda x: x['date'])
+
     # return json or csv with metadata
     if param_value_dict.get('format') == 'json':
         log.debug('Returning the results as JSON')
@@ -624,6 +628,10 @@ def public(request):
         results.pop(0)
     else:
         results[0]['clients'] = results[0]['clients'].cardinality()
+
+    # sort results by date
+    if 'details' in param_value_dict and any(x in param_value_dict['details'] for x in ['month', 'year']):
+        results = sorted(results, key=lambda x: x['date'])
 
     # return json or csv with metadata
     if param_value_dict.get('format') == 'json':
