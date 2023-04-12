@@ -6,6 +6,10 @@ import requests
 def set_parameters(context, param, value):
     context.request_parameters[param] = value
 
+@given(u'{token} as a valid token')
+def set_token(context, token):
+    context.token = token
+
 @when(u'doing a {method} request to featured endpoint')
 def do_request(context, method):
     url_params = ""
@@ -14,6 +18,11 @@ def do_request(context, method):
     url_params = url_params[:-1]
     if method.upper() == 'GET':
         context.request_result = requests.get(f"{context.baseurl}?{url_params}")
+    if method.upper() == 'POST':
+        print("POST request")
+        print(context.token)
+        context.request_result = requests.post(f"{context.baseurl}?{url_params}", data=open(context.token, 'rb'))
+
 
 @then(u'request result is {rc}')
 def request_result(context, rc):
