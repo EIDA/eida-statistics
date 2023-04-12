@@ -18,7 +18,6 @@ paths:
         Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
         Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
         Statistics for restricted networks are available only if user is properly authorized for each specific network.
-        Restricted statistics that user is not authorized to get are presented in an anonymized fashion with label "Other".
       parameters:
         - in: query
           name: start
@@ -206,6 +205,7 @@ paths:
         Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
         Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
         Depending on the token's groups, the behavior can vary ; if the user is a node operator, it is possible to filter on multiple networks with the <i>network</i> parameter.
+        Restricted statistics that user is not authorized to get are presented in an anonymized fashion with label "Other".
       parameters:
         - in: query
           name: start
