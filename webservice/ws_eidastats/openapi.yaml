@@ -472,12 +472,12 @@ paths:
           description: Service running and database available
         '500':
           description: Internal server error
-  /_nodes:
+  /nodes:
     get:
       tags:
         - Internal
       description: |
-        Get list of nodes. Meant for internal use.
+        Returns nodes with their default restriction policy.
       responses:
         '200':
           description: Successful request, results follow
@@ -489,8 +489,14 @@ paths:
                   nodes:
                     type: array
                     items:
-                      type: string
-                    example: [RESIF,NOA]
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: RESIF
+                        restriction_policy:
+                          type: string
+                          example: 0
         '500':
           description: Internal server error
   /_isRestricted:

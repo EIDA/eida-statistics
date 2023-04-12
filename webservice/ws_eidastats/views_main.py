@@ -281,7 +281,7 @@ def restricted(request):
         # if no node is specified, get all available nodes from database
         if nodes is None:
             try:
-                nodes = get_nodes(request, internalCall=True).json['nodes']
+                nodes = [node['name'] for node in get_nodes(request, internalCall=True).json['nodes']]
             except Exception as e:
                 raise Exception(e)
         for n in nodes:
@@ -505,7 +505,7 @@ def public(request):
         # if no node is specified, get all available nodes from database
         if nodes is None:
             try:
-                nodes = get_nodes(request, internalCall=True).json['nodes']
+                nodes = [node['name'] for node in get_nodes(request, internalCall=True).json['nodes']]
             except Exception as e:
                 raise Exception(e)
         for n in nodes:

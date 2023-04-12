@@ -46,9 +46,9 @@ def get_nodes(request, internalCall=False):
 
     try:
         session = Session()
-        sqlreq = session.query(Node).with_entities(Node.name).all()
+        sqlreq = session.query(Node).with_entities(Node.name, Node.restriction_policy).all()
         session.close()
-        return Response(json={"nodes": [n for node in sqlreq for n in node]}, content_type='application/json')
+        return Response(json={"nodes": [{"name": name, "restriction_policy": str(int(pol))} for (name, pol) in sqlreq]}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))
@@ -182,7 +182,7 @@ def check_request_parameters(request, one_network=True):
             # check if node exists
             elif key == 'node':
                 try:
-                    acceptable_nodes = get_nodes(request, internalCall=True).json['nodes']
+                    acceptable_nodes = [node['name'] for node in get_nodes(request, internalCall=True).json['nodes']]
                 except Exception as e:
                     raise Exception(e)
                 log.info('Got available nodes from database')
