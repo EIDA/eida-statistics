@@ -114,19 +114,21 @@ def register_statistics(statistics, node_id, operation='POST'):
         log.error("Operation %s not supported (POST or PUT only)")
         raise ValueError
 
-    # Add the nodeid to all elements of payload.
-    # Convert list of dictionary to list of list
     values_list = []
+    # Normalize some keys
     for item in statistics:
         log.debug("item: %s", item)
-        if len(item['country']) != 2 or item['country'] is None:
+        if 'country' not in item.keys() or item['country'] is None or len(item['country']) != 2:
             item['country'] = ''
         # if unsuccessful requests in Null, set it to 0
-        if item['nb_unsuccessful_requests'] is None:
+        if 'nb_unsuccessful_requests' not in item.keys() or item['nb_unsuccessful_requests'] is None:
             item['nb_unsuccessful_requests'] = 0
         # if successful requests is Null, set it to nb_requests+nb_unsuccessful_requests
-        if item['nb_requests'] is None:
+        if 'nb_requests' not in item.keys() or item['nb_requests'] is None:
             item['nb_requests'] = item['nb_successful_requests'] + item['nb_unsuccessful_requests']
+
+        # Add the nodeid to all elements of payload.
+        # Convert list of dictionary to list of list
         values_list.append((
             node_id, item['month'], item['network'], item['station'], item['location'], item['channel'], item['country'],
             item['bytes'], item['nb_requests'], item['nb_successful_requests'], item['nb_unsuccessful_requests'], item['clients']
