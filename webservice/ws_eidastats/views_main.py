@@ -37,7 +37,7 @@ def test_database(request):
 
     tables_to_insert = [DataselectStat.__tablename__, "payloads"]
     tables_to_update = [DataselectStat.__tablename__]
-    tables_to_select = [DataselectStat.__tablename__, Node.__tablename__, Network.__tablename__, "payloads" ]
+    tables_to_select = [DataselectStat.__tablename__, Node.__tablename__, Network.__tablename__, "payloads", "tokens" ]
     try:
         session = Session()
         sqlreq = session.execute(text("select table_name, privilege_type from information_schema.role_table_grants where grantee= :value").params(value = session.bind.url.username))
