@@ -1,3 +1,4 @@
+from requests import status_codes
 from pyramid.response import Response
 from pyramid.view import view_config
 from datetime import datetime
@@ -146,6 +147,7 @@ def register_statistics(statistics, node_id, operation='POST'):
     except exc.DBAPIError as err:
         log.error("Postgresql error %s registering statistic", err.orig.pgcode)
         log.error(err.orig.pgerror)
+        raise err
     log.info(f"Statistics successfully registered")
 
 @view_config(route_name='submitstat')
@@ -196,6 +198,10 @@ def add_stat(request):
     except ValueError:
         return Response(text="This statistic already exists on the server. Refusing to merge", status_code=400, content_type='text/plain')
 
-    register_statistics(payload['stats'], node_id=node_id, operation=request.method)
+    try:
+      register_statistics(payload['stats'], node_id=node_id, operation=request.method)
+    except Exception as e:
+        log.error(e)
+        return Response(text="Error on statistics ingestion. Please contact the maintainer of the service.", status_code=500, content_type='text/plain')
 
     return Response(text="Statistic successfully ingested to database!", content_type='text/plain')
