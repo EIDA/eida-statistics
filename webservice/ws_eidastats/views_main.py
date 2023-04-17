@@ -7,11 +7,11 @@ import re
 import python_hll
 from python_hll.util import NumberUtil
 from python_hll.hll import HLL
-from ws_eidastats.model import Node, DataselectStat
+from ws_eidastats.model import Node, DataselectStat, Network
 from ws_eidastats.helper_functions import get_nodes, check_authentication, check_request_parameters, log, Session
 from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoNodeAndNetwork, BothMonthYear
 from ws_eidastats.views_restrictions import isRestricted
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from sqlalchemy.sql import func, extract
 from sqlalchemy.sql.expression import literal_column
 
@@ -36,15 +36,37 @@ def test_database(request):
     log.info(f"{request.method} {request.url}")
 
     tables_to_insert = [DataselectStat.__tablename__, "payloads"]
+    tables_to_update = [DataselectStat.__tablename__]
+    tables_to_select = [DataselectStat.__tablename__, Node.__tablename__, Network.__tablename__, "payloads" ]
     try:
         session = Session()
-        sqlreq = session.query(DataselectStat).limit(3).all()
+        sqlreq = session.execute(text("select table_name, privilege_type from information_schema.role_table_grants where grantee= :value").params(value = session.bind.url.username))
+        results = sqlreq.fetchall()
+
+        # Check permissions to select.
+        tables =  [r[0] for r in results if r[1] == 'SELECT']
+        log.debug(f"Tables where {session.bind.url.username} can select: {tables}")
+        # Test if all tables where we need to insert have been returned by the request
+        if not set(tables_to_insert).issubset(set(tables)):
+            raise Exception(f"User {session.bind.url.username} misses select permissions on one of the tables {tables_to_select}")
+        #
         # Check permissions to insert.
         # Should be payloads and dataselect_stats
-        sqlreq = session.execute("""select table_name from information_schema.role_table_grants where grantee=%s and privilege_type='INSERT'""", (session.bind.url.username,))
-        tables =  [r[0] for r in sqlreq.fetchall()]
+        tables =  [r[0] for r in results if r[1] == 'INSERT']
+        log.debug(f"Tables where {session.bind.url.username} can insert: {tables}")
+        # Test if all tables where we need to insert have been returned by the request
         if not set(tables_to_insert).issubset(set(tables)):
             raise Exception(f"User {session.bind.url.username} misses insert permissions on one of the tables {tables_to_insert}")
+
+        # Check permissions to update.
+        # Should be payloads and dataselect_stats
+        tables =  [r[0] for r in results if r[1] == 'UPDATE']
+        log.debug(f"Tables where {session.bind.url.username} can update: {tables}")
+        # Test if all tables where we need to insert have been returned by the request
+        if not set(tables_to_update).issubset(set(tables)):
+            raise Exception(f"User misses update permissions on one of the tables {tables_to_update}")
+
+        # Check permission to select
         session.close()
         return Response(text="The service is up and running and database is available!", content_type='text/plain')
 
