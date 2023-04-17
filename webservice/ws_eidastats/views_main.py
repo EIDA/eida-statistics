@@ -35,15 +35,22 @@ def test_database(request):
 
     log.info(f"{request.method} {request.url}")
 
+    tables_to_insert = [DataselectStat.__tablename__, "payloads"]
     try:
         session = Session()
         sqlreq = session.query(DataselectStat).limit(3).all()
+        # Check permissions to insert.
+        # Should be payloads and dataselect_stats
+        sqlreq = session.execute("""select table_name from information_schema.role_table_grants where grantee=%s and privilege_type='INSERT'""", (session.bind.url.username,))
+        tables =  [r[0] for r in sqlreq.fetchall()]
+        if not set(tables_to_insert).issubset(set(tables)):
+            raise Exception(f"User {session.bind.url.username} misses insert permissions on one of the tables {tables_to_insert}")
         session.close()
         return Response(text="The service is up and running and database is available!", content_type='text/plain')
 
     except Exception as e:
         log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection or schema error</p>", status_code=500)
 
 
 @view_config(route_name='dataselectraw', openapi=True)

@@ -119,12 +119,15 @@ def register_statistics(statistics, node_id, operation='POST'):
     for item in statistics:
         log.debug("item: %s", item)
         if 'country' not in item.keys() or item['country'] is None or len(item['country']) != 2:
+            log.debug("Fixing country")
             item['country'] = ''
         # if unsuccessful requests in Null, set it to 0
         if 'nb_unsuccessful_requests' not in item.keys() or item['nb_unsuccessful_requests'] is None:
+            log.debug("Fixing nb_unsuccessful_requests")
             item['nb_unsuccessful_requests'] = 0
         # if successful requests is Null, set it to nb_requests+nb_unsuccessful_requests
         if 'nb_requests' not in item.keys() or item['nb_requests'] is None:
+            log.debug("Fixing nb_requests")
             item['nb_requests'] = item['nb_successful_requests'] + item['nb_unsuccessful_requests']
 
         # Add the nodeid to all elements of payload.
