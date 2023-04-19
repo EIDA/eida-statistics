@@ -36,6 +36,7 @@ def main(global_config, **settings):
     config.registry.settings["pyramid_openapi3.enable_response_validation"] = False
     config.add_route('health', prefix+'/_health')
     config.add_route('nodes', prefix+'/nodes')
+    config.add_route('networks', prefix+'/networks')
     config.add_route('dataselectraw', prefix+'/dataselect/raw')
     config.add_route('dataselectrestricted', prefix+'/dataselect/restricted')
     config.add_route('dataselectpublic', prefix+'/dataselect/public')

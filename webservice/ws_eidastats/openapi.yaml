@@ -501,6 +501,33 @@ paths:
                           example: 0
         '500':
           description: Internal server error
+  /networks:
+    get:
+      tags:
+        - Internal
+      description: |
+        Returns networks with their restriction policy.
+      responses:
+        '200':
+          description: Successful request, results follow
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  networks:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: FR
+                        restriction_policy:
+                          type: string
+                          example: 0
+        '500':
+          description: Internal server error
   /_isRestricted:
     get:
       tags:

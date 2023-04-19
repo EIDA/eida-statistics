@@ -49,7 +49,7 @@ def test_database(request):
         # Test if all tables where we need to insert have been returned by the request
         if not set(tables_to_insert).issubset(set(tables)):
             raise Exception(f"User {session.bind.url.username} misses select permissions on one of the tables {tables_to_select}")
-        #
+
         # Check permissions to insert.
         # Should be payloads and dataselect_stats
         tables =  [r[0] for r in results if r[1] == 'INSERT']
