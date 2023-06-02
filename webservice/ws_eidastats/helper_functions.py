@@ -20,10 +20,6 @@ class NoNetwork(Exception):
     "Raised when network parameter must have been specified"
     pass
 
-class NoNodeAndNetwork(Exception):
-    "Raised when both node and network parameters must have been specified"
-    pass
-
 class Mandatory(Exception):
     "Raised when mandatory parameters are not specified"
     pass
@@ -121,24 +117,15 @@ def check_request_parameters(request, one_network=True):
     log.info('Entering check_request_parameters')
 
     # parameters that all methods accept
-    accepted = ['start', 'end', 'node', 'network', 'country']
-    # parameters accepted by raw method
-    if 'raw' in request.url:
-        accepted += ['station', 'location', 'channel']
+    accepted = ['start', 'end', 'node', 'network', 'country', 'level', 'details', 'format', 'hllvalues']
     # parameters accepted by restricted method
-    elif 'restricted' in request.url:
-        accepted += ['station', 'location', 'channel', 'level', 'details', 'format']
-    # parameters accepted by public method
-    elif 'public' in request.url:
-        accepted += ['level', 'details', 'format']
+    if 'restricted' in request.url:
+        accepted += ['station', 'location', 'channel']
 
     params = request.params
     # make start parameter mandatory
     if 'start' not in params:
         raise Mandatory
-    # if /raw method is used and user is not a node operator, then both node and network parameters must be specified
-    if 'raw' in request.url and one_network and any(x not in params for x in ['node', 'network']):
-        raise NoNodeAndNetwork
     # if /restricted method is used and user is not a node operator and specifies any of station, channel, location parameters
     # then network parameter must be specified
     if 'restricted' in request.url and one_network and any(x in params for x in ['station', 'channel', 'location']) and 'network' not in params:
@@ -165,6 +152,13 @@ def check_request_parameters(request, one_network=True):
                 raise ValueError(key)
             else:
                 param_value_dict[key] = params.get(key)
+        elif key == 'hllvalues':
+            # hllvalues acceptable values: true or false
+            log.debug('Hllvalues: '+params.get(key))
+            if params.get(key) not in ['true', 'false']:
+                raise ValueError(key)
+            else:
+                param_value_dict[key] = params.get(key)
         elif key == 'level':
             # level acceptable values depending on the method
             log.debug('Level: '+params.get(key))
@@ -184,10 +178,6 @@ def check_request_parameters(request, one_network=True):
             # if user is not a node operator only one network can be specified at a time
             if key == 'network' and one_network:
                 log.debug('Network: '+params.get(key))
-                param_value_dict[key] = [params.get(key)]
-            # if /raw method is used and user is not a node operator and one of the below is true, then only one node can be specified
-            elif key == 'node' and one_network and 'raw' in request.url:
-                log.debug('Node: '+params.get(key))
                 param_value_dict[key] = [params.get(key)]
             else:
                 # distinguish values given at each parameter

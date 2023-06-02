@@ -9,7 +9,7 @@ from python_hll.util import NumberUtil
 from python_hll.hll import HLL
 from ws_eidastats.model import Node, DataselectStat, Network
 from ws_eidastats.helper_functions import get_nodes, check_authentication, check_request_parameters, log, Session
-from ws_eidastats.helper_functions import NoNetwork, Mandatory, NoNodeAndNetwork, BothMonthYear
+from ws_eidastats.helper_functions import NoNetwork, Mandatory, BothMonthYear
 from ws_eidastats.views_restrictions import isRestricted
 from sqlalchemy import or_, text
 from sqlalchemy.sql import func, extract
@@ -73,162 +73,6 @@ def test_database(request):
     except Exception as e:
         log.error(str(e))
         return Response("<h1>500 Internal Server Error</h1><p>Database connection or schema error</p>", status_code=500)
-
-
-@view_config(route_name='dataselectraw', openapi=True)
-def raw(request):
-    """
-    Returns statistics to be used by computer
-    Returns 400 bad request if invalid request parameter given
-    Returns 401 unauthorized if authentication is unsuccessful
-    Returns 403 forbidden if user has no access to restricted network
-    """
-
-    log.info(f"{request.method} {request.url}")
-    if request.method != 'POST':
-        return Response("<h1>405 Method Not Allowed</h1><p>Only POST method allowed</p>", status_code=405)
-
-    # check authentication
-    # if authentication successful, return dictionary with token info
-    # else return 401 unauthorized
-    try:
-        tokenDict = check_authentication(request)
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>401 Unauthorized</h1><p>Malformed token file provided</p>", status_code=401)
-    if 'Failed_message' in tokenDict:
-        return Response(f"<h1>401 Unauthorized</h1><p>{tokenDict['Failed_message']}</p>", status_code=401)
-
-    log.info('Checked authentication')
-
-    # check authorization
-    # different behavior depending on whether user is node operator or not
-    memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
-    try:
-        session = Session()
-        sqlreq = session.query(Node).with_entities(Node.eas_group).all()
-        session.close()
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-
-    operator = False
-    for row in sqlreq:
-        if row.eas_group in memberOf:
-            operator = True
-            log.info('User is node operator')
-            break
-
-    log.info('Checked authorization')
-
-    # check parameters and values
-    # return dictionary with parameters and values if acceptable
-    # otherwise catch error and return 400 bad request
-    try:
-        if operator:
-            param_value_dict = check_request_parameters(request, one_network=False)
-        else:
-            param_value_dict = check_request_parameters(request)
-    except KeyError as e:
-        return Response(f"<h1>400 Bad Request</h1><p>Invalid parameter {str(e)}</p>", status_code=400)
-    except ValueError as e:
-        return Response(f"<h1>400 Bad Request</h1><p>Unsupported value for parameter '{str(e)}'</p>", status_code=400)
-    except Mandatory:
-        return Response("<h1>400 Bad Request</h1><p>Specify at least 'start' parameter</p>", status_code=400)
-    except NoNodeAndNetwork:
-        return Response("<h1>400 Bad Request</h1><p>For non-operator users, both 'node' and 'network' parameters are required</p>", status_code=400)
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1>", status_code=500)
-
-    log.info('Checked parameters of request')
-
-    # if user is not operator can only get statistics for open networks or networks to which they have access
-    if not operator:
-        # if network is specified, check if network is open or restricted
-        if 'network' in param_value_dict:
-            restricted = isRestricted(request, internalCall=True, node=param_value_dict['node'][0], network=param_value_dict['network'][0])
-            if restricted.status_code == 500:
-                return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-            elif restricted.status_code == 400:
-                return Response(f"<h1>400 Bad Request</h1><p>No entry that matches given node and network parameters</p>", status_code=400)
-            # if network is restricted, check if user has access
-            elif restricted.json['restricted'] == 'yes':
-                log.debug('Network is restricted. Checking if user has access')
-                if restricted.json['group'] not in memberOf:
-                    log.info('User has no access')
-                    return Response("<h1>403 Forbidden</h1><p>User has no access to the requested network</p>", status_code=403)
-
-        log.info('Checked network restriction. User can access')
-
-    try:
-        log.debug('Connecting to db, SELECT and FROM clause')
-        session = Session()
-        sqlreq = session.query(DataselectStat).join(Node).\
-                            with_entities(DataselectStat.date, DataselectStat.network, DataselectStat.station, DataselectStat.location,\
-                            DataselectStat.channel, DataselectStat.country, DataselectStat.nb_reqs, DataselectStat.nb_successful_reqs,\
-                            DataselectStat.bytes, DataselectStat.clients, Node.name)
-
-        # where clause
-        log.debug('Making the WHERE clause')
-        if 'start' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.date >= param_value_dict['start'])
-        if 'end' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.date <= param_value_dict['end'])
-        if 'node' in param_value_dict:
-            sqlreq = sqlreq.filter(Node.name.in_(param_value_dict['node']))
-        if 'network' in param_value_dict:
-            multiOR = or_(False)
-            for net in param_value_dict['network']:
-                if '%' or '_' in net:
-                    multiOR = or_(multiOR, DataselectStat.network.like(net))
-                else:
-                    multiOR = or_(multiOR, DataselectStat.network == net)
-            sqlreq = sqlreq.filter(multiOR)
-        if 'station' in param_value_dict:
-            multiOR = or_(False)
-            for sta in param_value_dict['station']:
-                if '%' or '_' in sta:
-                    multiOR = or_(multiOR, DataselectStat.station.like(sta))
-                else:
-                    multiOR = or_(multiOR, DataselectStat.station == sta)
-            sqlreq = sqlreq.filter(multiOR)
-        if 'country' in param_value_dict:
-            sqlreq = sqlreq.filter(DataselectStat.country.in_(param_value_dict['country']))
-        if 'location' in param_value_dict:
-            multiOR = or_(False)
-            for loc in param_value_dict['location']:
-                if '%' or '_' in loc:
-                    multiOR = or_(multiOR, DataselectStat.location.like(loc))
-                else:
-                    multiOR = or_(multiOR, DataselectStat.location == loc)
-            sqlreq = sqlreq.filter(multiOR)
-        if 'channel' in param_value_dict:
-            multiOR = or_(False)
-            for cha in param_value_dict['channel']:
-                if '%' or '_' in cha:
-                    multiOR = or_(multiOR, DataselectStat.channel.like(cha))
-                else:
-                    multiOR = or_(multiOR, DataselectStat.channel == cha)
-            sqlreq = sqlreq.filter(multiOR)
-        session.close()
-
-    except Exception as e:
-        log.error(str(e))
-        return Response("<h1>500 Internal Server Error</h1><p>Database connection error or invalid SQL statement passed to database</p>", status_code=500)
-
-    # get results as dictionaries and add node name
-    log.debug('Getting the results')
-    results = []
-    for row in sqlreq:
-        rowToDict = DataselectStat.to_dict(row)
-        rowToDict['node'] = row.name
-        results.append(rowToDict)
-
-    # return json with metadata
-    log.debug('Returning the results')
-    return Response(text=json.dumps({'version': '1.0.0', 'request_parameters': request.query_string, 'results': results},
-            default=str), content_type='application/json', charset='utf-8')
 
 
 @view_config(route_name='dataselectrestricted', openapi=True)
@@ -472,12 +316,17 @@ def restricted(request):
             rowToDict['channel'] = row.channel if param_value_dict.get('level') == 'channel' else '*'
             rowToDict['country'] = row.country if 'country' in param_value_dict['details'] else '*'
             rowToDict['clients'] = HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))).cardinality()
+            # add hll_client field if hllvalues parameter is set to true
+            if param_value_dict.get('hllvalues') == 'true':
+                rowToDict['hll_clients'] = row.clients
             results.append(rowToDict)
 
     # remove non-accessable networks result item if no such network was returned
     if not atLeastOneNoAccess:
         results.pop(0)
     else:
+        if param_value_dict.get('hllvalues') == 'true':
+            results[0]['hll_clients'] = "\\x" + NumberUtil.to_hex(results[0]['clients'].to_bytes(), 0, len(results[0]['clients'].to_bytes()))
         results[0]['clients'] = results[0]['clients'].cardinality()
 
     # sort results by date
@@ -650,12 +499,17 @@ def public(request):
             rowToDict['location'] = '*'
             rowToDict['channel'] = '*'
             rowToDict['clients'] = HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))).cardinality()
+            # add hll_client field if hllvalues parameter is set to true
+            if param_value_dict.get('hllvalues') == 'true':
+                rowToDict['hll_clients'] = row.clients
             results.append(rowToDict)
 
     # remove restricted networks result item if no restricted network was returned
     if not atLeastOneRestricted:
         results.pop(0)
     else:
+        if param_value_dict.get('hllvalues') == 'true':
+            results[0]['hll_clients'] = "\\x" + NumberUtil.to_hex(results[0]['clients'].to_bytes(), 0, len(results[0]['clients'].to_bytes()))
         results[0]['clients'] = results[0]['clients'].cardinality()
 
     # sort results by date

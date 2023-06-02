@@ -37,7 +37,6 @@ def main(global_config, **settings):
     config.add_route('health', prefix+'/_health')
     config.add_route('nodes', prefix+'/nodes')
     config.add_route('networks', prefix+'/networks')
-    config.add_route('dataselectraw', prefix+'/dataselect/raw')
     config.add_route('dataselectrestricted', prefix+'/dataselect/restricted')
     config.add_route('dataselectpublic', prefix+'/dataselect/public')
     config.add_route('submitstat', prefix+'/submit')

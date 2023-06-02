@@ -9,101 +9,6 @@ externalDocs:
   description: Webservice github page
   url: https://github.com/EIDA/eida-statistics/tree/main/webservice
 paths:
-  /dataselect/raw:
-    post:
-      tags:
-        - Statistics
-      description: |
-        Get raw statistics in a format meant for computer programs.<br>
-        Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
-        Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
-        Statistics for restricted networks are available only if user is properly authorized for each specific network.
-      parameters:
-        - in: query
-          name: start
-          description: |
-            Start month for time window; ISO-8601 YYYY-MM
-          schema:
-            type: string
-            example: 2023-01
-        - in: query
-          name: end
-          description: |
-            End month for time window; ISO-8601 YYYY-MM
-          schema:
-            type: string
-            example: 2023-01
-        - in: query
-          name: node
-          description: |
-            Filter the results by node <a href="https://www.orfeus-eu.org/data/eida/nodes/">member of EIDA</a>.<br>
-            Comma separated list is possible only if the user's token maps to a node operator. For non-operators, a single node must be specified.
-          schema:
-            type: string
-            example: RESIF,NOA
-        - in: query
-          name: network
-          description: |
-            Filter the results by FDSN extended network code (for temporary networks: XX2022; for permanent networks: GE).<br>
-            If the user is not allowed to get statistics for this network, the response is 403, unauthorized.<br>
-            Comma separated list is possible only if the user's token maps to a node operator. For non-operators, a single network must be specified.
-          schema:
-            type: string
-            example: Z32015,FR
-        - in: query
-          name: station
-          description: |
-            Station code. Comma separated list is possible.
-          schema:
-            type: string
-            example: 'A*'
-        - in: query
-          name: location
-          description: |
-            Location code. Comma separated list is possible.
-          schema:
-            type: string
-            example: '00'
-        - in: query
-          name: channel
-          description: |
-            Channel code. Comma separated list is possible.
-          schema:
-            type: string
-            example: HHZ
-        - in: query
-          name: country
-          description: |
-            Filter on country code as <a href="https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2">ISO 3155 alpha-2 format</a>. Comma separated list is possible.
-          schema:
-            type: string
-            example: FR,GR
-      requestBody:
-        description: |
-          A file containing the <a href="https://geofon.gfz-potsdam.de/eas/">EIDA authentication system</a> token.
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              format: binary
-      responses:
-        '200':
-          description: Successful request, results follow
-          content:
-            application/json:
-              schema:
-                type: object
-                $ref: '#/components/schemas/StatisticsComputerResponseObject'
-        '400':
-          description: Bad request due to unrecognised parameter, unsupported parameter value etc.
-        '401':
-          description: Unauthorized. No valid token provided
-        '403':
-          description: Forbidden. User has no access to the requested data
-        '405':
-          description: Method not allowed
-        '500':
-          description: Internal server error
   /dataselect/public:
     get:
       tags:
@@ -204,7 +109,8 @@ paths:
         Get statistics, public and restricted.<br>
         Authentication <a href="https://geofon.gfz-potsdam.de/eas/">with eida token</a> is required.
         Submit your access request to <a href="https://geofon.gfz-potsdam.de/eas/">userfeedback</a> if you don't know where to ask for authorization.<br>
-        Depending on the token's groups, the behavior can vary ; if the user is a node operator, it is possible to filter on multiple networks with the <i>network</i> parameter.
+        Depending on the token's groups, the behavior can vary; if the user is a node operator, it is possible to filter on multiple networks with the <i>network</i> parameter.
+        Statistics for restricted networks are available only if user is properly authorized for each specific network.
         Restricted statistics that user is not authorized to get are presented in an anonymized fashion with label "Other".
       parameters:
         - in: query
@@ -267,9 +173,8 @@ paths:
         - in: query
           name: level
           description: |
-            Detail level of the results. In order of details level, car be empty, 'node', 'network', 'station', 'location', 'channel'. Empty means accross all EIDA.<br>
-            Every parameter more precise than the specified level will appear with a '*' in the resuls.
-
+            Detail level of the results. In order of details, level can be empty, 'node', 'network', 'station', 'location', 'channel'. Empty means accross all EIDA.<br>
+            Every parameter more precise than the specified level will appear with a '*' in the results.
           schema:
             type: string
             enum:
@@ -298,6 +203,16 @@ paths:
               - json
               - csv
             default: csv
+        - in: query
+          name: hllvalues
+          description: |
+            Include in the results the internal representation of clients in database, which is a HyperLogLog hash object. This option is probably meant to be used by a computer program.
+          schema:
+            type: boolean
+            enum:
+              - false
+              - true
+            default: false
       requestBody:
         description: A file that contains the EIDA authentication system token
         content:
@@ -316,7 +231,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: '#/components/schemas/StatisticsHumanResponseObject'
+                $ref: '#/components/schemas/StatisticsRestrictedResponseObject'
         '400':
           description: Bad request due to unrecognised parameter, unsupported parameter value etc.
         '401':
@@ -572,58 +487,7 @@ paths:
           description: Internal server error
 components:
   schemas:
-    StatisticsComputerResponseObject:
-      type: object
-      properties:
-        version:
-          type: string
-          example: 1.0.0
-        request_parameters:
-          type: string
-          example: 'start=2021-01&end=2021-12&node=RESIF&network=NL&sta=STA*&country=GR,FR'
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/ComputerResponseResult'
-    ComputerResponseResult:
-      type: object
-      properties:
-        month:
-          type: string
-          example: 2022-11
-        node:
-          type: string
-          example: RESIF
-        network:
-          type: string
-          example: NL
-        station:
-          type: string
-          example: HGN
-        location:
-          type: string
-          example: 00
-        channel:
-          type: string
-          example: HHZ
-        country:
-          type: string
-          example: GR
-          nullable: true
-        bytes:
-          type: integer
-          example: 561234
-        nb_reqs:
-          type: integer
-          example: 56
-        nb_successful_reqs:
-          type: integer
-          example: 40
-        clients:
-          type: string
-          example: \x128b7fffffffff8ef137c60000000002832c9b
-          description: HyperLogLog hash object
-    StatisticsHumanResponseObject:
+    StatisticsRestrictedResponseObject:
       type: object
       properties:
         version:
@@ -635,9 +499,21 @@ components:
         results:
           type: array
           items:
-            $ref: '#/components/schemas/HumanResponseResult'
-    HumanResponseResult:
+            $ref: '#/components/schemas/RestrictedResponseResult'
+    RestrictedResponseResult:
       type: object
+      required:
+      - date
+      - node
+      - network
+      - station
+      - location
+      - channel
+      - country
+      - bytes
+      - nb_reqs
+      - nb_successful_reqs
+      - clients
       properties:
         date:
           type: string
@@ -674,6 +550,10 @@ components:
           type: integer
           example: 34
           description: This is an evaluation of the internal representation in the database
+        hll_clients:
+          type: string
+          example: \\x128b7fffffffff8ef137c60000000002832c9b
+          description: HyperLogLog hash object; this is the internal representation in the database
     StatisticsPublicResponseObject:
       type: object
       properties:
@@ -689,6 +569,18 @@ components:
             $ref: '#/components/schemas/PublicResponseResult'
     PublicResponseResult:
       type: object
+      required:
+      - date
+      - node
+      - network
+      - station
+      - location
+      - channel
+      - country
+      - bytes
+      - nb_reqs
+      - nb_successful_reqs
+      - clients
       properties:
         date:
           type: string
@@ -725,6 +617,10 @@ components:
           type: integer
           example: 34
           description: This is an evaluation of the internal representation in the database
+        hll_clients:
+          type: string
+          example: \\x128b7fffffffff8ef137c60000000002832c9b
+          description: HyperLogLog hash object; this is the internal representation in the database
     Stat:
       required:
       - date
