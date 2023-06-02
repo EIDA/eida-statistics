@@ -5,7 +5,7 @@ import gnupg
 import re
 import os
 import logging
-from ws_eidastats.model import Node
+from ws_eidastats.model import Node, Network
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -49,6 +49,28 @@ def get_nodes(request, internalCall=False):
         sqlreq = session.query(Node).with_entities(Node.name, Node.restriction_policy).all()
         session.close()
         return Response(json={"nodes": [{"name": name, "restriction_policy": str(int(pol))} for (name, pol) in sqlreq]}, content_type='application/json')
+
+    except Exception as e:
+        log.error(str(e))
+        return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
+
+
+@view_config(route_name='networks', request_method='GET', openapi=True)
+def get_networks(request, internalCall=False):
+    """
+    Returns a list with the available nodes
+    """
+
+    if internalCall:
+        log.info('Entering get_networks')
+    else:
+        log.info(f"{request.method} {request.url}")
+
+    try:
+        session = Session()
+        sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy, Network.inverted_policy, Network.name).all()
+        session.close()
+        return Response(json={"networks": [{"name": name, "restriction_policy": str(int(dfl)^int(inv))} for (dfl, inv, name) in set(sqlreq)]}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))

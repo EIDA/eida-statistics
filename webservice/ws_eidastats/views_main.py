@@ -37,7 +37,7 @@ def test_database(request):
 
     tables_to_insert = [DataselectStat.__tablename__, "payloads"]
     tables_to_update = [DataselectStat.__tablename__]
-    tables_to_select = [DataselectStat.__tablename__, Node.__tablename__, Network.__tablename__, "payloads" ]
+    tables_to_select = [DataselectStat.__tablename__, Node.__tablename__, Network.__tablename__, "payloads", "tokens" ]
     try:
         session = Session()
         sqlreq = session.execute(text("select table_name, privilege_type from information_schema.role_table_grants where grantee= :value").params(value = session.bind.url.username))
@@ -49,7 +49,7 @@ def test_database(request):
         # Test if all tables where we need to insert have been returned by the request
         if not set(tables_to_insert).issubset(set(tables)):
             raise Exception(f"User {session.bind.url.username} misses select permissions on one of the tables {tables_to_select}")
-        #
+
         # Check permissions to insert.
         # Should be payloads and dataselect_stats
         tables =  [r[0] for r in results if r[1] == 'INSERT']
