@@ -83,6 +83,16 @@ paths:
               - json
               - csv
             default: csv
+        - in: query
+          name: hllvalues
+          description: |
+            Include in the results the internal representation of clients in database, which is a HyperLogLog hash object. This option is probably meant to be used by a computer program.
+          schema:
+            type: boolean
+            enum:
+              - false
+              - true
+            default: false
       responses:
         '200':
           description: Successful request, results follow
