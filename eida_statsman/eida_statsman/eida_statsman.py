@@ -11,7 +11,7 @@ import ssl
 import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from eida_statsman.model import Node, Token
+from model import Node, Token, Network
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,6 +31,7 @@ def cli(ctx, dburi, noop, debug, webservice_url):
     Session = sessionmaker(bind=engine)
     ctx.obj['session'] = Session()
 
+
 @click.group()
 @click.pass_context
 def nodes(ctx):
@@ -43,7 +44,6 @@ def nodes_list(ctx):
     for n in ctx.obj['session'].query(Node):
         click.echo(n)
 
-
 @click.command(name='add')
 @click.pass_context
 @click.option('--name', '-n', required=True, help="Node name")
@@ -52,7 +52,6 @@ def nodes_add(ctx, name, contact):
     click.echo("Adding nodes")
     ctx.obj['session'].add(Node(name=name, contact=contact))
     ctx.obj['session'].commit()
-
 
 @click.command(name='del')
 @click.argument('nodeids', nargs=-1, type=int)
@@ -82,6 +81,86 @@ def nodes_update(ctx, nodeid, name, contact):
         ctx.obj['session'].commit()
     else:
         ctx.obj['session'].rollback()
+
+@click.command(name='set_group')
+@click.pass_context
+@click.argument('nodeid', type=int)
+@click.argument('eas_group')
+def nodes_group(ctx, nodeid, eas_group):
+    click.echo("Updating node eas_group")
+    node = ctx.obj['session'].query(Node).filter(Node.id == nodeid).first()
+    if node == None:
+        click.echo(f"Node id {nodeid} not found")
+        sys.exit(1)
+    node.eas_group = eas_group
+    ctx.obj['session'].commit()
+
+@click.command(name='set_policy')
+@click.pass_context
+@click.argument('nodeid', type=int)
+@click.argument('policy', type=bool)
+def nodes_policy(ctx, nodeid, policy):
+    click.echo("Updating node default restriction policy")
+    node = ctx.obj['session'].query(Node).filter(Node.id == nodeid).first()
+    if node == None:
+        click.echo(f"Node id {nodeid} not found")
+        sys.exit(1)
+    node.restriction_policy = policy
+    if not policy:
+        click.echo("The following networks will now be restricted:")
+        for n in ctx.obj['session'].query(Network).join(Node).filter(Node.id == nodeid).filter(Network.inverted_policy == True):
+            click.echo(n)
+    else:
+        click.echo(f"All networks of node id {nodeid} are now restricted")
+        for n in ctx.obj['session'].query(Network).join(Node).filter(Node.id == nodeid).filter(Network.inverted_policy == True):
+            n.inverted_policy = 0
+    ctx.obj['session'].commit()
+
+
+@click.group()
+@click.pass_context
+def networks(ctx):
+    click.echo("Networks management")
+
+@click.command(name='list')
+@click.pass_context
+@click.option('--node', '-n', help="Node id", type=int)
+def networks_list(ctx, node):
+    click.echo("Listing networks")
+    if node:
+        for n in ctx.obj['session'].query(Network).filter(Network.node_id == node):
+            click.echo(n)
+    else:
+        for n in ctx.obj['session'].query(Network):
+            click.echo(n)
+
+@click.command(name='set_group')
+@click.pass_context
+@click.argument('nodeid', type=int)
+@click.argument('netname')
+@click.argument('eas_group')
+def networks_group(ctx, nodeid, netname, eas_group):
+    click.echo("Updating network eas_group")
+    network = ctx.obj['session'].query(Network).join(Node).filter(Node.id == nodeid).filter(Network.name == netname).first()
+    if network == None:
+        click.echo(f"Network with name '{netname}' of node id {nodeid} not found")
+        sys.exit(1)
+    network.eas_group = eas_group
+    ctx.obj['session'].commit()
+
+@click.command(name='set_policy')
+@click.pass_context
+@click.argument('nodeid', type=int)
+@click.argument('netname')
+@click.argument('policy', type=bool)
+def networks_policy(ctx, nodeid, netname, policy):
+    click.echo("Updating network restriction policy status")
+    network = ctx.obj['session'].query(Network).join(Node).filter(Node.id == nodeid).filter(Network.name == netname).first()
+    if network == None:
+        click.echo(f"Network with name '{netname}' of node id {nodeid} not found")
+        sys.exit(1)
+    network.inverted_policy = policy
+    ctx.obj['session'].commit()
 
 
 @click.group()
@@ -165,9 +244,18 @@ nodes.add_command(nodes_list)
 nodes.add_command(nodes_add)
 nodes.add_command(nodes_del)
 nodes.add_command(nodes_update)
+nodes.add_command(nodes_group)
+nodes.add_command(nodes_policy)
+networks.add_command(networks_list)
+networks.add_command(networks_group)
+networks.add_command(networks_policy)
 tokens.add_command(tokens_list)
 tokens.add_command(tokens_add)
 tokens.add_command(tokens_rev)
 tokens.add_command(tokens_mv)
 cli.add_command(nodes)
+cli.add_command(networks)
 cli.add_command(tokens)
+
+if __name__ == '__main__':
+    cli()
