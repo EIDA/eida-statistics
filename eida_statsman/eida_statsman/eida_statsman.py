@@ -11,7 +11,7 @@ import ssl
 import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from model import Node, Token, Network
+from .model import Node, Token, Network
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,7 +62,7 @@ def nodes_del(ctx, nodeids):
             ctx.obj['session'].query(Node).filter(Node.id == node_id).delete()
         ctx.obj['session'].commit()
 
-@click.command(name='update')
+@click.command(name='update', help="Modify name or email")
 @click.option('--name', '-n', help="New name")
 @click.option('--contact', '-c', help="New contact email")
 @click.argument('nodeid', nargs=1, type=int)
@@ -82,7 +82,7 @@ def nodes_update(ctx, nodeid, name, contact):
     else:
         ctx.obj['session'].rollback()
 
-@click.command(name='set_group')
+@click.command(name='set_group', help="Define EAS group name authorized to see restricted statistics.")
 @click.pass_context
 @click.argument('nodeid', type=int)
 @click.argument('eas_group')
@@ -95,7 +95,10 @@ def nodes_group(ctx, nodeid, eas_group):
     node.eas_group = eas_group
     ctx.obj['session'].commit()
 
-@click.command(name='set_policy')
+@click.command(name='set_policy',help="""Change the policy of the node.
+If set to 1/True all networks of node turn their inverted_policy to 0 to conform with restriction.
+If policy is set to 0/False, all networks of node with inverted_policy = 1 are printed to inform user that they will become restricte."""
+               )
 @click.pass_context
 @click.argument('nodeid', type=int)
 @click.argument('policy', type=bool)
