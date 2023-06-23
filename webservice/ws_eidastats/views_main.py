@@ -282,11 +282,7 @@ def restricted(request):
     # assign '*' at aggregated parameters
     log.debug('Getting the results')
     results = []
-    # make a result item for networks that user cannot access
-    atLeastOneNoAccess = False
-    if not operator:
-        results.append({'date':'*', 'node':'Other', 'network':'Other', 'country':'*', 'station':'*', 'location':'*', 'channel':'*',
-            'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)})
+    restricted_results = {}
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
@@ -299,11 +295,16 @@ def restricted(request):
                         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
                     elif restricted.json['restricted'] == 'yes' and restricted.json['group'] not in memberOf:
                         log.debug('Grouping network as non-accessable in results')
-                        results[0]['bytes'] += int(row.bytes)
-                        results[0]['nb_reqs'] += row.nb_reqs
-                        results[0]['nb_successful_reqs'] += row.nb_successful_reqs
-                        results[0]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
-                        atLeastOneNoAccess = True
+                        date = str(row.date)[:-3] if 'month' in param_value_dict['details'] else str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
+                        country = row.country if 'country' in param_value_dict['details'] else '*'
+                        if (date, country) in restricted_results:
+                            restricted_results[(date, country)]['bytes'] += int(row.bytes)
+                            restricted_results[(date, country)]['nb_reqs'] += row.nb_reqs
+                            restricted_results[(date, country)]['nb_successful_reqs'] += row.nb_successful_reqs
+                            restricted_results[(date, country)]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
+                        else:
+                            restricted_results[(date, country)] = {'date':date, 'node':'Other', 'network':'Other', 'country':country,
+                                'station':'*', 'location':'*', 'channel':'*', 'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)}
                         continue
 
             rowToDict = DataselectStat.to_dict_for_human(row)
@@ -321,13 +322,15 @@ def restricted(request):
                 rowToDict['hll_clients'] = row.clients
             results.append(rowToDict)
 
-    # remove non-accessable networks result item if no such network was returned
-    if not atLeastOneNoAccess:
-        results.pop(0)
-    else:
+    # calculate cardinalities for other items
+    for (k, v) in restricted_results.items():
+        # add hll_client field if hllvalues parameter is set to true
         if param_value_dict.get('hllvalues') == 'true':
-            results[0]['hll_clients'] = "\\x" + NumberUtil.to_hex(results[0]['clients'].to_bytes(), 0, len(results[0]['clients'].to_bytes()))
-        results[0]['clients'] = results[0]['clients'].cardinality()
+            v['hll_clients'] = "\\x" + NumberUtil.to_hex(v['clients'].to_bytes(), 0, len(v['clients'].to_bytes()))
+        v['clients'] = v['clients'].cardinality()
+
+    # concatenate open and restricted results
+    results.extend(restricted_results.values())
 
     # sort results by date
     if 'details' in param_value_dict and any(x in param_value_dict['details'] for x in ['month', 'year']):
@@ -469,10 +472,7 @@ def public(request):
     # assign '*' at non-selected columns
     log.debug('Getting the results')
     results = []
-    # make a result item for restricted networks
-    results.append({'date':'*', 'node':'Other', 'network':'Other', 'country':'*', 'station':'*', 'location':'*', 'channel':'*',
-        'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)})
-    atLeastOneRestricted = False
+    restricted_results = {}
     for row in sqlreq:
         if row != (None, None, None, None):
             rowToDict = DataselectStat.to_dict_for_human(row)
@@ -483,11 +483,16 @@ def public(request):
                     return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
                 elif restricted.json['restricted'] == 'yes':
                     log.debug('Grouping network as restricted in results')
-                    results[0]['bytes'] += int(row.bytes)
-                    results[0]['nb_reqs'] += row.nb_reqs
-                    results[0]['nb_successful_reqs'] += row.nb_successful_reqs
-                    results[0]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
-                    atLeastOneRestricted = True
+                    date = str(row.date)[:-3] if 'month' in param_value_dict['details'] else str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
+                    country = row.country if 'country' in param_value_dict['details'] else '*'
+                    if (date, country) in restricted_results:
+                        restricted_results[(date, country)]['bytes'] += int(row.bytes)
+                        restricted_results[(date, country)]['nb_reqs'] += row.nb_reqs
+                        restricted_results[(date, country)]['nb_successful_reqs'] += row.nb_successful_reqs
+                        restricted_results[(date, country)]['clients'].union(HLL.from_bytes(NumberUtil.from_hex(row.clients[2:], 0, len(row.clients[2:]))))
+                    else:
+                        restricted_results[(date, country)] = {'date':date, 'node':'Other', 'network':'Other', 'country':country,
+                            'station':'*', 'location':'*', 'channel':'*', 'bytes': 0, 'nb_reqs': 0, 'nb_successful_reqs': 0, 'clients': HLL(11,5)}
                     continue
 
             rowToDict['date'] = str(row.date)[:-3] if 'month' in param_value_dict['details'] else\
@@ -504,13 +509,15 @@ def public(request):
                 rowToDict['hll_clients'] = row.clients
             results.append(rowToDict)
 
-    # remove restricted networks result item if no restricted network was returned
-    if not atLeastOneRestricted:
-        results.pop(0)
-    else:
+    # calculate cardinalities for other items
+    for (k, v) in restricted_results.items():
+        # add hll_client field if hllvalues parameter is set to true
         if param_value_dict.get('hllvalues') == 'true':
-            results[0]['hll_clients'] = "\\x" + NumberUtil.to_hex(results[0]['clients'].to_bytes(), 0, len(results[0]['clients'].to_bytes()))
-        results[0]['clients'] = results[0]['clients'].cardinality()
+            v['hll_clients'] = "\\x" + NumberUtil.to_hex(v['clients'].to_bytes(), 0, len(v['clients'].to_bytes()))
+        v['clients'] = v['clients'].cardinality()
+
+    # concatenate open and restricted results
+    results.extend(restricted_results.values())
 
     # sort results by date
     if 'details' in param_value_dict and any(x in param_value_dict['details'] for x in ['month', 'year']):

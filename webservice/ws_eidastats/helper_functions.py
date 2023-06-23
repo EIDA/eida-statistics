@@ -54,7 +54,7 @@ def get_nodes(request, internalCall=False):
 @view_config(route_name='networks', request_method='GET', openapi=True)
 def get_networks(request, internalCall=False):
     """
-    Returns a list with the available nodes
+    Returns a list with the available networks
     """
 
     if internalCall:
@@ -64,9 +64,9 @@ def get_networks(request, internalCall=False):
 
     try:
         session = Session()
-        sqlreq = session.query(Network).join(Node).with_entities(Node.restriction_policy, Network.inverted_policy, Network.name).all()
+        sqlreq = session.query(Network).join(Node).with_entities(Node.name, Node.restriction_policy, Network.inverted_policy, Network.name).all()
         session.close()
-        return Response(json={"networks": [{"name": name, "restriction_policy": str(int(dfl)^int(inv))} for (dfl, inv, name) in set(sqlreq)]}, content_type='application/json')
+        return Response(json={"networks": [{"name": name, "node": node, "restriction_policy": str(int(dfl)^int(inv))} for (node, dfl, inv, name) in sqlreq]}, content_type='application/json')
 
     except Exception as e:
         log.error(str(e))
