@@ -448,6 +448,9 @@ paths:
                         name:
                           type: string
                           example: FR
+                        node:
+                          type: string
+                          example: RESIF
                         restriction_policy:
                           type: string
                           example: 0
