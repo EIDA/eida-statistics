@@ -19,7 +19,7 @@ python-gnupg = "*"
 openapi-core = "==0.16.5"
 numpy = "==1.23.0"
 python-hll = "*"
-pyramid-openapi3 = {git = "https://github.com/vpet98/pyramid_openapi3"}
+sentry-sdk = "*"
 
 [dev-packages]
 pytest = "*"
@@ -28,3 +28,6 @@ behave = "*"
 
 [requires]
 python_version = "3.9"
+
+[packages.pyramid-openapi3]
+git = "https://github.com/vpet98/pyramid_openapi3"

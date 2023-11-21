@@ -1,4 +1,5 @@
 from pyramid.config import Configurator
+import sentry_sdk
 import os
 import tempfile
 import yaml
@@ -15,6 +16,11 @@ def prefix_openapi_spec(path, prefix=""):
     return yaml.dump(openapi_dict)
 
 def main(global_config, **settings):
+    # setting up sentry
+    sentry_sdk.init(
+        dsn="https://53266e8828fb4ea0d73971c78e74eba8@o4505990995509248.ingest.sentry.io/4506264097128448",
+    )
+
     # Setting the prefix in the openapi spec
     prefix = os.getenv('EIDASTATS_API_PATH','')
     proto = os.getenv('EIDASTATS_API_PROTO','http')
