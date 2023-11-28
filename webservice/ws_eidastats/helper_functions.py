@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 log = logging.getLogger(__name__)
 dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
-engine = create_engine(dbURI)
+engine = create_engine(dbURI, pool_size=10, max_overflow=20)
 Session = sessionmaker(engine)
 
 
