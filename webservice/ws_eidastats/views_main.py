@@ -103,7 +103,6 @@ def restricted(request):
 
     # check authorization
     # different behavior depending on whether user is node operator or not
-    memberOf = re.findall(r'/epos/(\w+)', tokenDict['memberof'])
     try:
         session = Session()
         sqlreq = session.query(Node).with_entities(Node.eas_group).all()
@@ -114,7 +113,7 @@ def restricted(request):
 
     operator = False
     for row in sqlreq:
-        if row.eas_group in memberOf:
+        if row.eas_group in tokenDict['memberof'].split(';'):
             operator = True
             log.info('User is node operator')
             break
@@ -170,7 +169,7 @@ def restricted(request):
                 access = True
                 break
             # if network is restricted, check if user has access
-            elif restricted.json['restricted'] == 'yes' and restricted.json['group'] in memberOf:
+            elif restricted.json['restricted'] == 'yes' and restricted.json['group'] in tokenDict['memberof'].split(';'):
                 log.info('User can access restricted network')
                 access = True
                 break
@@ -293,7 +292,7 @@ def restricted(request):
                     restricted = isRestricted(request, internalCall=True, node=row.name, network=row.network)
                     if restricted.status_code != 200:
                         return Response("<h1>500 Internal Server Error</h1><p>Database connection error</p>", status_code=500)
-                    elif restricted.json['restricted'] == 'yes' and restricted.json['group'] not in memberOf:
+                    elif restricted.json['restricted'] == 'yes' and restricted.json['group'] not in tokenDict['memberof'].split(';'):
                         log.debug('Grouping network as non-accessable in results')
                         date = str(row.date)[:-3] if 'month' in param_value_dict['details'] else str(row.year)[:4] if 'year' in param_value_dict['details'] else '*'
                         country = row.country if 'country' in param_value_dict['details'] else '*'
