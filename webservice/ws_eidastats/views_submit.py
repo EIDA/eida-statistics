@@ -1,8 +1,6 @@
-from requests import status_codes
 from pyramid.response import Response
 from pyramid.view import view_config
 from datetime import datetime
-import os
 import json
 import mmh3
 from ws_eidastats.helper_functions import log, Session

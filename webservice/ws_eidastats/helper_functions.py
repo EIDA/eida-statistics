@@ -10,7 +10,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
+logging.basicConfig()
 log = logging.getLogger(__name__)
+log.setLevel(os.getenv('LOGLEVEL', logging.INFO))
+
 dbURI = os.getenv('DBURI', 'postgresql://postgres:password@localhost:5432/eidastats')
 engine = create_engine(dbURI, pool_size=10, max_overflow=20)
 Session = sessionmaker(engine)
