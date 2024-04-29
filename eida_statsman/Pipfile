@@ -5,8 +5,9 @@ name = "pypi"
 
 [packages]
 click = "*"
-psycopg2 = "*"
 sqlalchemy = "*"
+psycopg2-binary = "*"
+eida-statsman = {file = "."}
 
 [dev-packages]
 

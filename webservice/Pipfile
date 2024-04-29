@@ -16,10 +16,10 @@ pytest-postgresql = "*"
 psycopg = "*"
 requests = "*"
 python-gnupg = "*"
-openapi-core = "==0.16.5"
 numpy = "==1.23.0"
 python-hll = "*"
 sentry-sdk = "*"
+pyramid-openapi3 = "*"
 
 [dev-packages]
 pytest = "*"
@@ -28,6 +28,3 @@ behave = "*"
 
 [requires]
 python_version = "3.9"
-
-[packages.pyramid-openapi3]
-git = "https://github.com/vpet98/pyramid_openapi3"
