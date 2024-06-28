@@ -19,13 +19,13 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd webservice
           python -m pip install --upgrade pip
           apt-get update && apt-get upgrade -y && apt-get install  -y --no-install-recommends libpq-dev gcc libc6-dev gpg git
           pip install -r webservice/requirements.txt
 
       - name: Run tests with coverage
         run: |
-          cd webservice
           coverage run -m pytest tests/test_app.py
 
       - name: Generate coverage badge
