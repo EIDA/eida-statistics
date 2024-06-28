@@ -20,6 +20,8 @@ numpy = "==1.23.0"
 python-hll = "*"
 sentry-sdk = "*"
 pyramid-openapi3 = "*"
+coverage = "*"
+coverage-badge = "*"
 
 [dev-packages]
 pytest = "*"

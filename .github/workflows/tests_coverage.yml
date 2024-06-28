@@ -1,0 +1,49 @@
+name: Update Coverage Badge
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x 
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt  # Adjust if you have a requirements file
+
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest test/test_app.py
+          coverage report -m --fail-under=90  # Adjust the coverage threshold as needed
+
+      - name: Generate coverage badge
+        run: |
+          coverage-badge -o coverage.svg  # Assumes coverage-badge tool is installed
+
+      - name: Prepend badge to README
+        run: |
+          echo "" > temp_readme.md  # Create a temporary file
+          echo "# My Project" >> temp_readme.md  # Restore the title
+          echo "" >> temp_readme.md  # Add a blank line for spacing
+          echo "[![Coverage Status](coverage.svg)](./coverage.svg)" >> temp_readme.md  # Append the badge
+          sed '1d' README.md >> temp_readme.md  # Append the rest of README.md
+          mv temp_readme.md README.md  # Replace README.md with the modified temp file
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git commit -m "Add coverage badge to README" -a || true  # Continue even if nothing to commit
+          git push

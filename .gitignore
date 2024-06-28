@@ -5,3 +5,4 @@ htmlcov
 */__pycache__
 /backend_database/Pipfile
 /backend_database/yoyo.ini
+.coverage
