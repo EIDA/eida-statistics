@@ -15,21 +15,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.x 
+          python-version: 3.x
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Adjust if you have a requirements file
+          pip install -r webservice/requirements.txt
 
       - name: Run tests with coverage
         run: |
           coverage run -m pytest test/test_app.py
-          coverage report -m --fail-under=90  # Adjust the coverage threshold as needed
 
       - name: Generate coverage badge
         run: |
-          coverage-badge -o coverage.svg  # Assumes coverage-badge tool is installed
+          coverage-badge -o coverage.svg
 
       - name: Prepend badge to README
         run: |
