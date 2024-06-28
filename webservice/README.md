@@ -2,29 +2,30 @@
 
 The webserice provides an endpoint to send and consult the statistics.
 
-## Run for developement
+## Install the webservice
 
-Database backend: 
+For the database backend look at [database README](../backend_database/README.md).
 
-    cd ../backend_database
-    docker build -f Dockerfile.pg-hll -t pg-hll .
-    docker run -d -e POSTGRES_PASSWORD=password -p 5432:5432 pg-hll -c fsync=no
-    cd ../webservice
-    pip instann --user pipenv
-    pipenv install
-    pipenv install yoyo
-    pipenv shell
-    yoyo apply --database postgres://postgre:password@localhost/postgres migrations
-    
-Webservice frontend :
-    
-    FLASK_ENV=development FLASK_APP=app.py DBURI=postgresql://postgres:password@localhost:5432/postgres flask run
-    
+### Webservice frontend:
+
+ - For development purposes:
+   ```
+   pipenv install requirements.txt
+   DBURI=postgresql://postgres:password@localhost:5432/postgres pserve development.ini
+   ```
+
+ - Using Docker:
+   ```
+   docker build -f Dockerfile -t eidastats .
+   DBURI=postgresql://postgres:password@localhost:5432/postgres docker run -p 6543:6543 eidastats
+   ```
+   **Note:** Make sure to use the correct environment variables for the database in your system.
+
 ## API validation with behaviour tests
 
     pip install behave
     BASEURL=http://ws-staging.resif.fr/eidaws/statistics/1 behave behave_tests
-    
+
 The BASEURL environment can be set to the webservice instance to test.
 
 
@@ -50,4 +51,4 @@ You need a valid token to post some data.
 
 ## Getting statistics
 
-The interface is fully documented in [openapi](openapi.yaml).
+The interface is fully documented in [openapi](ws_eidastats/openapi.yaml).
