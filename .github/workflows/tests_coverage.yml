@@ -25,7 +25,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          coverage run -m pytest test/test_app.py
+          coverage run -m pytest webservice/test/test_app.py
 
       - name: Generate coverage badge
         run: |
