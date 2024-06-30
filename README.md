@@ -1,4 +1,7 @@
-# EIDA central statistics repository
+
+# My Project
+
+[![Coverage Status](coverage.svg)](./coverage.svg)
 
 There are 3 parts of this project :
 
