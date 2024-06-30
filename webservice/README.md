@@ -2,6 +2,9 @@
 # EIDA statistics webservice
 
 [![Coverage Status](coverage.svg)](./coverage.svg)
+
+# EIDA statistics webservice
+
 # EIDA statistics webservice
 
 [![Coverage Status](coverage.svg)](./coverage.svg)
