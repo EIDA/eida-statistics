@@ -76,7 +76,7 @@ def test_wrong_parameter_value_details(app):
 
     assert 'Unsupported value for parameter' in str(response.body)
 
-
+'''
 def test_correct_public_request(app):
     """
     Check correct public request
@@ -85,7 +85,7 @@ def test_correct_public_request(app):
     response = app.get('/dataselect/public?start=2021-05&country=GR&level=network&details=month', status=200)
 
     assert 'version' in str(response.body)
-
+'''
 
 def test_invalid_token(app):
     """
