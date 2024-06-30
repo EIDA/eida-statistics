@@ -24,7 +24,6 @@ def main(global_config, **settings):
 
     # Setting the prefix in the openapi spec
     prefix = os.getenv('EIDASTATS_API_PATH','')
-    proto = os.getenv('EIDASTATS_API_PROTO','http')
     try:
         port = int(os.getenv('EIDASTATS_API_PORT', 80))
     except ValueError as e:
@@ -38,7 +37,7 @@ def main(global_config, **settings):
     config = Configurator(settings=settings)
     config.include("pyramid_openapi3")
     config.pyramid_openapi3_spec(openapi_doc.name, route=os.path.join(prefix, 'openapi.yaml'))
-    config.pyramid_openapi3_add_explorer(route=prefix+"/", proto_port=(proto, port))
+    config.pyramid_openapi3_add_explorer(route=prefix+"/")
     config.registry.settings["pyramid_openapi3.enable_request_validation"] = False
     config.registry.settings["pyramid_openapi3.enable_response_validation"] = False
     config.add_route('health', prefix+'/_health')

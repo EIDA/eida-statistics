@@ -1,0 +1,54 @@
+name: Update Coverage Badge
+
+on:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          cd webservice
+          python -m pip install --upgrade pip
+          apt-get update && apt-get upgrade -y && apt-get install  -y --no-install-recommends libpq-dev gcc libc6-dev gpg git
+          pip install -r requirements.txt
+
+      - name: Run tests with coverage
+        run: |
+          cd webservice
+          coverage run -m pytest tests/test_app.py
+
+      - name: Generate coverage badge
+        run: |
+          cd webservice
+          rm -f coverage.svg  # Remove any existing coverage.svg file
+          coverage-badge -o coverage.svg
+
+      - name: Prepend badge to README
+        run: |
+          cd webservice
+          echo "" > temp_readme.md  # Create a temporary file
+          echo "# EIDA statistics webservice" >> temp_readme.md  # Restore the title
+          echo "" >> temp_readme.md  # Add a blank line for spacing
+          echo "[![Coverage Status](coverage.svg)](./coverage.svg)" >> temp_readme.md  # Append the badge
+          sed '1,4d' README.md >> temp_readme.md  # Append the rest of README.md
+          mv temp_readme.md README.md  # Replace README.md with the modified temp file
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md webservice/coverage.svg
+          git commit -m "Add coverage badge to README" -a || true  # Continue even if nothing to commit
+          git push
