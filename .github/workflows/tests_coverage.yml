@@ -41,7 +41,7 @@ jobs:
           echo "# EIDA statistics webservice" >> temp_readme.md  # Restore the title
           echo "" >> temp_readme.md  # Add a blank line for spacing
           echo "[![Coverage Status](coverage.svg)](./coverage.svg)" >> temp_readme.md  # Append the badge
-          sed '1d' README.md >> temp_readme.md  # Append the rest of README.md
+          sed '4d' README.md >> temp_readme.md  # Append the rest of README.md
           mv temp_readme.md README.md  # Replace README.md with the modified temp file
 
       - name: Commit and push changes
