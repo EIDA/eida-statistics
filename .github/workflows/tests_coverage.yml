@@ -32,6 +32,7 @@ jobs:
       - name: Generate coverage badge
         run: |
           cd webservice
+          rm -f coverage.svg  # Remove any existing coverage.svg file
           coverage-badge -o coverage.svg
 
       - name: Prepend badge to README
