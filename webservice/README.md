@@ -3,6 +3,9 @@
 
 [![Coverage Status](coverage.svg)](./coverage.svg)
 
+# EIDA statistics webservice
+
+
 The webserice provides an endpoint to send and consult the statistics.
 
 ## Install the webservice
