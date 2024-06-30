@@ -1,7 +1,4 @@
-
-# My Project
-
-[![Coverage Status](coverage.svg)](./coverage.svg)
+# EIDA central statistics repository
 
 There are 3 parts of this project :
 
@@ -59,4 +56,3 @@ To configure and run an instance of the webservice, see [it's documentation](web
 ## Aggregate and submit statistics
 
 Now, use the aggregator program to build statistics and send them to the webservice instance. Look at the [documentation](aggregator/README.md)
-
