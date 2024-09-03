@@ -193,7 +193,7 @@ class StatCollection():
                 try:
                     countrycode = data['userLocation']['country']
                 except KeyError:
-                    logging.warning("Key error for data %s")
+                    logging.warning("No country code found in %s, default to empty string", data['userLocation'])
                     countrycode = ""
                 if data['status'] == "OK":
                     for trace in data['trace']:

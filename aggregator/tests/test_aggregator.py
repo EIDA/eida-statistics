@@ -2,7 +2,6 @@
 
 from aggregator.aggregator import EidaStatistic, StatCollection
 import datetime
-import pytest
 
 def test_whatever():
     assert True
