@@ -4,7 +4,9 @@ There are 3 parts of this project :
 
 ## Aggregator
 
-The aggregator is meant to be deployed on each EIDA node. It is responsible for computing logging statistics with the dataselect usage events as provided by seiscomp.
+The aggregator is meant to be deployed on each EIDA node.
+
+The code has moved and now available as an independant project : https://github.com/EIDA/eida-statistics-aggregator
 
 ## Centralized statistics web service
 
