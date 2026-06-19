@@ -35,7 +35,7 @@ class DataselectStat(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'), primary_key=True)
     date = Column(Date(), primary_key=True)
     network = Column(String(6), primary_key=True)
-    station = Column(String(5), primary_key=True)
+    station = Column(String(8), primary_key=True)
     location = Column(String(2), primary_key=True)
     channel = Column(String(3), primary_key=True)
     country = Column(String(2), primary_key=True)
